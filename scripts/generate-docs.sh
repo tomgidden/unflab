@@ -175,3 +175,32 @@ echo "==> site-extra/get"
   printf '%s' "$rows"
 } > "$DOCS_DIR/index.md"
 echo "==> docs/index.md"
+
+# Frontmatter is YAML, and two separate bugs have reached CI through it:
+# an apostrophe from a man page (logname), and utilities named true,
+# false and yes parsing as booleans rather than strings. Both broke the
+# docs build several minutes into a run. Check here instead, where it
+# costs nothing -- but only if a YAML parser is available, so this stays
+# a lint rather than a hard dependency.
+if command -v python3 >/dev/null 2>&1 && python3 -c 'import yaml' 2>/dev/null; then
+  python3 - "$DOCS_DIR" <<'VALIDATE'
+import sys, glob, os, yaml
+bad = 0
+for f in sorted(glob.glob(os.path.join(sys.argv[1], '*.md'))):
+    txt = open(f).read()
+    if not txt.startswith('---\n'):
+        continue
+    try:
+        d = yaml.safe_load(txt.split('---\n', 2)[1])
+    except Exception as e:
+        print(f"  INVALID YAML in {os.path.basename(f)}: {e}"); bad += 1; continue
+    for k in ('title', 'description'):
+        if k in d and not isinstance(d[k], str):
+            print(f"  {os.path.basename(f)}: {k} is {type(d[k]).__name__}, not str "
+                  f"({d[k]!r}) -- needs quoting"); bad += 1
+if bad:
+    print(f"generate-docs: {bad} frontmatter problem(s)", file=sys.stderr)
+    sys.exit(1)
+VALIDATE
+  echo "==> frontmatter validated"
+fi
