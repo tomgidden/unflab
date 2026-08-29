@@ -105,6 +105,29 @@ SRC_DIR="${UNFLAB_SRC_DIR:-$BUILD_ROOT/${UNFLAB_NAME}-${UNFLAB_VERSION}}"
 export BUILD_DIR="$SRC_DIR"
 export RECIPE_DIR ROOT_DIR
 
+# Keep Homebrew out of the build's default search paths unless a recipe
+# deliberately opts back in with UNFLAB_ALLOW_BREW=1.
+#
+# Autotools configure scripts probe for optional libraries and silently
+# link whatever they find. On a CI runner that means /opt/homebrew --
+# paths that exist on no user's Mac. wget picked up Homebrew's pcre2
+# exactly this way, and a sibling project shipped a cksum linked against
+# Homebrew's openssl@3 for the same reason. The otool gate catches it
+# after the fact; this stops it happening at all.
+#
+# Build tools themselves (cmake, go, autotools) stay on PATH -- this only
+# removes the library and header search paths, not the toolchain.
+if [[ "${UNFLAB_ALLOW_BREW:-0}" != "1" ]]; then
+  for var in PKG_CONFIG_PATH PKG_CONFIG_LIBDIR CPATH C_INCLUDE_PATH \
+             CPLUS_INCLUDE_PATH LIBRARY_PATH LD_LIBRARY_PATH \
+             DYLD_LIBRARY_PATH DYLD_FALLBACK_LIBRARY_PATH; do
+    unset "$var" || true
+  done
+  # A bare `pkg-config` with no path set still reports Homebrew's .pc
+  # files on a runner, so point it at nothing rather than unsetting it.
+  export PKG_CONFIG_LIBDIR="/usr/lib/pkgconfig"
+fi
+
 # ---------------------------------------------------------------- build
 
 echo "==> Building"

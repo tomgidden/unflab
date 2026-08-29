@@ -77,10 +77,23 @@ unflab_build() {
   # --disable-iri drops libidn2 and libunistring; --disable-nls drops
   # gettext. Between them and the static OpenSSL, all five of Homebrew's
   # dependencies are gone.
+  #
+  # --disable-pcre2/--disable-pcre are not optional tidying: wget's
+  # configure opportunistically detects PCRE for --regex-type=pcre, and
+  # on a machine that happens to have Homebrew's pcre2 (every macOS CI
+  # runner does) it links /opt/homebrew/opt/pcre2/lib/libpcre2-8.0.dylib
+  # straight into the binary. That path exists on no user's Mac. The
+  # otool gate caught exactly this. --without-metalink and --without-cares
+  # are the same class of hazard, disabled pre-emptively rather than
+  # relying on the build machine being clean.
   ./configure \
     --with-ssl=openssl \
     --with-libssl-prefix="$deps" \
     --without-libpsl \
+    --disable-pcre2 \
+    --disable-pcre \
+    --without-metalink \
+    --without-cares \
     --disable-iri \
     --disable-nls \
     CPPFLAGS="-I$deps/include" \
