@@ -1,0 +1,4 @@
+bin	755	bin/doggo	doggo	-
+doc	644	README.md	README.md	-
+doc	644	LICENSE	LICENSE	-
+doc	644	config/doggo.toml.sample	doggo.toml.sample	-
