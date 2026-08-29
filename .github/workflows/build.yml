@@ -1,7 +1,13 @@
 name: Build
 
-# Builds every utility on both architectures and enforces the gate.
-# Runs on push and PR so a broken recipe is caught before a tag is cut.
+# One job per recipe per architecture, so a broken recipe fails alone
+# instead of taking the whole matrix with it. Previously `make all` ran
+# the recipes serially and aborted on the first failure, which meant one
+# bad recipe hid the state of every recipe after it -- and each retry
+# rebuilt everything.
+#
+# The matrix is generated from utils/, so adding a recipe never means
+# editing this file.
 
 on:
   push:
@@ -12,39 +18,55 @@ on:
 permissions:
   contents: read
 
-# A full build is ~115 packages across two architectures and takes a
-# while. Without this, a run of pushes queues up behind itself and every
-# superseded run still burns a runner. Only the newest commit's result
-# matters, so cancel the rest.
 concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  recipes:
+    name: List recipes
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.list.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: list
+        run: |
+          set -euo pipefail
+          names=$(ls -d utils/*/ | xargs -n1 basename | sort)
+          json=$(printf '%s\n' $names | jq -R . | jq -sc .)
+          echo "matrix=$json" >> "$GITHUB_OUTPUT"
+          echo "Recipes: $names"
+
   build:
+    name: ${{ matrix.recipe }} (${{ matrix.target.arch }})
+    needs: recipes
     strategy:
       fail-fast: false
       matrix:
-        include:
+        recipe: ${{ fromJSON(needs.recipes.outputs.matrix) }}
+        # runner and arch travel together; listing arch separately as
+        # well would produce a cross-product pairing each runner with
+        # both triples.
+        #
+        # Intel is disabled for now to halve runner cost and turnaround.
+        # Uncomment the second entry to build x86_64 again -- everything
+        # else (packaging, the gate, the litmus test, releases) is
+        # already arch-agnostic, so that is the only change needed.
+        target:
           - runner: macos-latest
             arch: arm64-apple-darwin
-          - runner: macos-15-intel
-            arch: x86_64-apple-darwin
-    runs-on: ${{ matrix.runner }}
+          # - runner: macos-15-intel
+          #   arch: x86_64-apple-darwin
+    runs-on: ${{ matrix.target.runner }}
     steps:
       - uses: actions/checkout@v4
 
-      # Recipes declare what they need via UNFLAB_TOOLCHAIN. Go is cached
-      # on the runner image but is NOT on PATH until setup-go activates
-      # it, so a Go recipe fails with "go: command not found" without
-      # this. Conditioned on the recipes rather than always-on, so the
-      # step disappears if no recipe needs Go.
       - id: toolchains
         run: |
           set -euo pipefail
-          need() { grep -qh "^UNFLAB_TOOLCHAIN=.*\\b$1\\b" utils/*/recipe.sh && echo true || echo false; }
+          need() { grep -qh "^UNFLAB_TOOLCHAIN=.*\b$1\b" "utils/${{ matrix.recipe }}/recipe.sh" && echo true || echo false; }
           echo "go=$(need go)" >> "$GITHUB_OUTPUT"
-          echo "rust=$(need rust)" >> "$GITHUB_OUTPUT"
           echo "cmake=$(need cmake)" >> "$GITHUB_OUTPUT"
 
       - if: steps.toolchains.outputs.go == 'true'
@@ -53,27 +75,22 @@ jobs:
           go-version: "1.26"
           cache: false
 
-      # Pinned to 3.x deliberately. CMake 4 removed CMP0048's OLD
-      # behaviour outright, and bloaty 1.1 (2020) vendors a capstone that
-      # asks for it explicitly -- CMAKE_POLICY_VERSION_MINIMUM cannot
-      # help, because the code requests a behaviour that no longer
-      # exists. Patching vendored third-party CMake files would mean
-      # carrying those patches; using the last CMake that supports them
-      # does not.
+      # Pinned to 3.x deliberately: CMake 4 removed CMP0048's OLD
+      # behaviour, which bloaty's vendored capstone requires.
       - if: steps.toolchains.outputs.cmake == 'true'
         uses: lukka/get-cmake@latest
         with:
           cmakeVersion: "3.31.6"
 
-      - name: Build all utilities
-        run: make all
+      - name: Build
+        run: scripts/build.sh ${{ matrix.recipe }}
 
       - name: Package
-        run: scripts/package.sh ${{ matrix.arch }}
+        run: scripts/package.sh ${{ matrix.target.arch }}
 
-      # The gate again, against what will actually be shipped, not just
-      # what was staged: packaging is where a wrong file could creep in.
-      - name: Verify shipped archives link only system libraries
+      # The gate again, against what will actually ship: packaging is
+      # where a wrong file could creep in.
+      - name: Verify shipped archives
         run: |
           set -euo pipefail
           mkdir -p /tmp/verify
@@ -84,13 +101,27 @@ jobs:
             scripts/verify.sh "$d"
           done
 
-      - name: Litmus test -- install and run with no Homebrew on PATH
-        run: scripts/litmus-test.sh ${{ matrix.arch }}
+      - name: Litmus test
+        run: scripts/litmus-test.sh ${{ matrix.target.arch }}
 
       - uses: actions/upload-artifact@v4
         with:
-          name: dist-${{ matrix.arch }}
+          name: dist-${{ matrix.recipe }}-${{ matrix.target.arch }}
           path: |
             dist/*.tar.gz
-            dist/SHA256SUMS-*.txt
           if-no-files-found: error
+
+  # A single green check to require on the branch, so the protection rule
+  # doesn't need updating every time a recipe is added.
+  all:
+    name: All recipes built
+    needs: build
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          if [ "${{ contains(needs.build.result, 'failure') || contains(needs.build.result, 'cancelled') }}" = "true" ]; then
+            echo "One or more recipes failed."
+            exit 1
+          fi
+          echo "All recipes built and passed the litmus test."
