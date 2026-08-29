@@ -1,0 +1,8 @@
+# Build and packaging output
+/.build/
+/out/
+/dist/
+/site/
+
+# macOS
+.DS_Store
