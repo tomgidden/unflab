@@ -94,6 +94,8 @@ unflab_build() {
     --disable-pcre \
     --without-metalink \
     --without-cares \
+    --with-included-libunistring \
+    --without-libunistring-prefix \
     --disable-iri \
     --disable-nls \
     CPPFLAGS="-I$deps/include" \

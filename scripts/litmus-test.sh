@@ -59,14 +59,24 @@ for archive in "${archives[@]}"; do
     [[ -L "$bin" ]] && continue          # aliases point at the real one
     name="$(basename "$bin")"
     ran_any=1
-    if env -i HOME="$home" PATH="$home/.local/bin:$CLEAN_PATH" \
-         "$bin" --version >/dev/null 2>&1 \
-       || env -i HOME="$home" PATH="$home/.local/bin:$CLEAN_PATH" \
-         "$bin" --help >/dev/null 2>&1; then
-      echo "  ok    $name runs"
-    else
-      echo "  FAIL  $name did not run"
+    # "Runs" means the binary loaded and executed -- not that it exited
+    # zero. `false` exits 1 by definition, and so does `test` with no
+    # arguments; judging those by exit status marks a working package
+    # broken. What actually distinguishes a broken binary here is a
+    # dynamic-link failure, which the shell reports as 126/127 and dyld
+    # writes to stderr. So check for that instead.
+    # `|| rc=$?` is required, not defensive: under `set -e` a failing
+    # command substitution kills the script before $? can be read -- and
+    # a non-zero exit is exactly what we're here to tolerate.
+    rc=0
+    out="$(env -i HOME="$home" PATH="$home/.local/bin:$CLEAN_PATH" \
+             "$bin" --version 2>&1)" || rc=$?
+    if [[ "$rc" -ge 126 ]] || grep -qiE 'dyld|image not found|Library not loaded|Symbol not found' <<<"$out"; then
+      echo "  FAIL  $name did not run (exit $rc)"
+      [[ -n "$out" ]] && echo "$out" | head -3 | sed 's/^/          /'
       ok_all=0
+    else
+      echo "  ok    $name runs"
     fi
   done
 
