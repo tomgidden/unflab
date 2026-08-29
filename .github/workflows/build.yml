@@ -45,12 +45,16 @@ jobs:
           need() { grep -qh "^UNFLAB_TOOLCHAIN=.*\\b$1\\b" utils/*/recipe.sh && echo true || echo false; }
           echo "go=$(need go)" >> "$GITHUB_OUTPUT"
           echo "rust=$(need rust)" >> "$GITHUB_OUTPUT"
+          echo "cmake=$(need cmake)" >> "$GITHUB_OUTPUT"
 
       - if: steps.toolchains.outputs.go == 'true'
         uses: actions/setup-go@v5
         with:
           go-version: "1.26"
           cache: false
+
+      - if: steps.toolchains.outputs.cmake == 'true'
+        uses: lukka/get-cmake@latest
 
       - name: Build all utilities
         run: make all
