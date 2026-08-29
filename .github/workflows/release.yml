@@ -27,6 +27,25 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
+
+      # Recipes declare what they need via UNFLAB_TOOLCHAIN. Go is cached
+      # on the runner image but is NOT on PATH until setup-go activates
+      # it, so a Go recipe fails with "go: command not found" without
+      # this. Conditioned on the recipes rather than always-on, so the
+      # step disappears if no recipe needs Go.
+      - id: toolchains
+        run: |
+          set -euo pipefail
+          need() { grep -qh "^UNFLAB_TOOLCHAIN=.*\\b$1\\b" utils/*/recipe.sh && echo true || echo false; }
+          echo "go=$(need go)" >> "$GITHUB_OUTPUT"
+          echo "rust=$(need rust)" >> "$GITHUB_OUTPUT"
+
+      - if: steps.toolchains.outputs.go == 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache: false
+
       - run: make all
       - run: scripts/package.sh ${{ matrix.arch }}
       - name: Litmus test

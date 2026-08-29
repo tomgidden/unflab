@@ -52,7 +52,15 @@ jobs:
         with:
           path: ./site
 
+  # Deploying needs Pages enabled, which GitHub does not offer for
+  # private repositories on all plans. The build job above still runs on
+  # every push -- it's a genuine check that the generator, the bootstrap
+  # substitution and docmd all work -- but the deploy is skipped rather
+  # than failing the workflow until the repo is public (or Pages is
+  # otherwise enabled). Flip UNFLAB_PAGES to '1' as a repo variable to
+  # turn deployment on.
   deploy:
+    if: vars.UNFLAB_PAGES == '1'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
