@@ -1,0 +1,83 @@
+name: Release
+
+# Cuts a release from a tag: builds both architectures, packages every
+# utility, and publishes the archives plus their checksums.
+#
+# The index.txt the `get` bootstrap reads is generated here from what was
+# actually built, so it can never advertise a utility that has no asset.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-latest
+            arch: arm64-apple-darwin
+          - runner: macos-15-intel
+            arch: x86_64-apple-darwin
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: make all
+      - run: scripts/package.sh ${{ matrix.arch }}
+      - name: Litmus test
+        run: scripts/litmus-test.sh ${{ matrix.arch }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.arch }}
+          path: |
+            dist/*.tar.gz
+            dist/SHA256SUMS-*.txt
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          merge-multiple: true
+          path: dist
+
+      # index.txt maps utility name -> version, and is what `get` uses to
+      # reject an unknown name before downloading anything. Derived from
+      # the recipes, then checked against the archives that actually
+      # exist, so the two can't drift apart.
+      - name: Generate index.txt
+        run: |
+          set -euo pipefail
+          : > dist/index.txt
+          for r in utils/*/recipe.sh; do
+            name=$(sed -n 's/^UNFLAB_NAME=//p' "$r" | tr -d '"')
+            version=$(sed -n 's/^UNFLAB_VERSION=//p' "$r" | tr -d '"')
+            packages=$(sed -n 's/^UNFLAB_PACKAGES=//p' "$r" | tr -d '"')
+            for p in ${packages:-$name}; do
+              if ls dist/unflab-"$p"-"$version"-*.tar.gz >/dev/null 2>&1; then
+                printf '%s\t%s\n' "$p" "$version" >> dist/index.txt
+              else
+                echo "no archive for $p $version" >&2
+                exit 1
+              fi
+            done
+          done
+          sort -o dist/index.txt dist/index.txt
+          echo "--- index.txt ---"; cat dist/index.txt
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.tar.gz
+            dist/SHA256SUMS-*.txt
+            dist/index.txt
+          generate_release_notes: true

@@ -1,0 +1,57 @@
+name: Build
+
+# Builds every utility on both architectures and enforces the gate.
+# Runs on push and PR so a broken recipe is caught before a tag is cut.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-latest
+            arch: arm64-apple-darwin
+          - runner: macos-15-intel
+            arch: x86_64-apple-darwin
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build all utilities
+        run: make all
+
+      - name: Package
+        run: scripts/package.sh ${{ matrix.arch }}
+
+      # The gate again, against what will actually be shipped, not just
+      # what was staged: packaging is where a wrong file could creep in.
+      - name: Verify shipped archives link only system libraries
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/verify
+          for a in dist/*.tar.gz; do
+            d=/tmp/verify/$(basename "$a" .tar.gz)
+            mkdir -p "$d"
+            tar xzf "$a" -C "$d"
+            scripts/verify.sh "$d"
+          done
+
+      - name: Litmus test -- install and run with no Homebrew on PATH
+        run: scripts/litmus-test.sh ${{ matrix.arch }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.arch }}
+          path: |
+            dist/*.tar.gz
+            dist/SHA256SUMS-*.txt
+          if-no-files-found: error
