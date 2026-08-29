@@ -46,8 +46,31 @@ mkdir -p "$BUILD_ROOT"
 # ---------------------------------------------------------------- fetch
 
 tarball="$BUILD_ROOT/$(basename "${UNFLAB_SOURCE%%\?*}")"
-echo "==> Fetching $UNFLAB_SOURCE"
-curl "${CURL_OPTS[@]}" -o "$tarball" "$UNFLAB_SOURCE"
+
+# Try mirrors when the primary is unreachable. ftp.gnu.org timed out on a
+# CI runner while the other architecture's job downloaded the same file
+# fine, so a transient outage there shouldn't fail a build. This is only
+# safe because UNFLAB_SHA256 is verified below: a mirror serving
+# different bytes is caught, not trusted.
+sources=("$UNFLAB_SOURCE")
+case "$UNFLAB_SOURCE" in
+  https://ftp.gnu.org/gnu/*)
+    rest="${UNFLAB_SOURCE#https://ftp.gnu.org/gnu/}"
+    sources+=("https://ftpmirror.gnu.org/gnu/$rest")
+    sources+=("https://mirrors.kernel.org/gnu/$rest")
+    ;;
+esac
+
+fetched=0
+for src in "${sources[@]}"; do
+  echo "==> Fetching $src"
+  if curl "${CURL_OPTS[@]}" -o "$tarball" "$src"; then
+    fetched=1
+    break
+  fi
+  echo "    unreachable; trying next source" >&2
+done
+[[ "$fetched" -eq 1 ]] || { echo "build.sh: could not download $UNFLAB_NAME from any source" >&2; exit 1; }
 
 if [[ -n "${UNFLAB_SHA256:-}" ]]; then
   echo "==> Verifying SHA-256"
