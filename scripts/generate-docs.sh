@@ -49,7 +49,18 @@ for recipe in "$ROOT_DIR"/utils/*/recipe.sh; do
   homepage="$(field UNFLAB_HOMEPAGE "$recipe")"
   source_url="$(field UNFLAB_SOURCE "$recipe")"
   class="$(field UNFLAB_CLASS "$recipe")"
-  packages="$(field UNFLAB_PACKAGES "$recipe")"
+  # UNFLAB_PACKAGES may be a command substitution -- coreutils builds its
+  # list of 105 from utils.txt -- so it has to be evaluated, not scraped.
+  # Sourcing in a subshell keeps the recipe's variables and functions out
+  # of this script's environment.
+  packages="$(
+    RECIPE_DIR="$dir" BUILD_ROOT="" bash -c '
+      set -eu
+      # shellcheck disable=SC1090
+      . "$1" >/dev/null 2>&1 || true
+      printf "%s" "${UNFLAB_PACKAGES:-$UNFLAB_NAME}"
+    ' _ "$recipe"
+  )"
   packages="${packages:-$name}"
 
   # Line 1 of a recipe is "# <name> -- <description>".
@@ -62,6 +73,12 @@ for recipe in "$ROOT_DIR"/utils/*/recipe.sh; do
     desc="$recipe_desc"
     if [[ -f "$dir/README-$pkg.md" ]]; then
       pkg_desc="$(sed -n '3,8p' "$dir/README-$pkg.md" | grep -m1 -v '^$' || true)"
+      [[ -n "$pkg_desc" ]] && desc="$pkg_desc"
+    elif [[ -f "$dir/descriptions.tsv" ]]; then
+      # A recipe emitting many packages (coreutils' 105) can supply a
+      # name -> one-liner table, so every page says what that utility
+      # actually does rather than repeating the suite's summary.
+      pkg_desc="$(awk -F'\t' -v n="$pkg" '$1 == n {print $2; exit}' "$dir/descriptions.tsv")"
       [[ -n "$pkg_desc" ]] && desc="$pkg_desc"
     fi
     printf '%s\t%s\n' "$pkg" "$version" >> "$EXTRA_DIR/index.txt"
