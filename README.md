@@ -52,6 +52,9 @@ machinery to acquire and keep updated.
 
 117 packages in total. `curl … | sh -s -- <name>` for any of them.
 
+Currently built for **Apple Silicon** only; Intel support is a
+one-line change to the build matrix if it's wanted.
+
 ## What's in scope
 
 A utility earns its place here on any one of three grounds:
@@ -112,20 +115,23 @@ without a pinned checksum is refused.
 large toolchain behind your back — needing one to build a 50KB binary
 would rather defeat the point.
 
-## Notes on CI
+## How CI works
 
-Builds run on GitHub's macOS runners, which bill at ten times the Linux
-rate. A full run is ~117 packages across two architectures and takes
-about twenty minutes, so pushing several times in a row can exhaust an
-account's included minutes. `build.yml` cancels superseded runs for this
-reason; if a run reports "the job was not started because recent account
-payments have failed or your spending limit needs to be increased",
-that's the cause, not the code.
+Each recipe builds in its own job, in parallel, so a broken recipe fails
+alone instead of aborting a serial run and hiding the state of every
+recipe after it. The matrix is generated from `utils/`, so adding a
+recipe needs no CI changes. Branch protection can require the single
+"All recipes built" check.
 
-Publishing the docs site needs GitHub Pages, which isn't available for
-private repositories on all plans. The docs are built on every push
-regardless; deployment is behind a `UNFLAB_PAGES` repository variable,
-so set that to `1` once Pages is available.
+Every job runs the `otool -L` gate on what it built, again on what it
+packaged, then installs the package into a throwaway HOME with only
+`/usr/bin:/bin` on `PATH` and runs it. Nothing is released that hasn't
+been installed and executed with no Homebrew in sight.
+
+**Intel builds are currently disabled** to halve runner cost — releases
+are Apple Silicon only for now. Everything downstream is arch-agnostic;
+re-enabling means uncommenting one matrix entry in `build.yml` and
+`release.yml`.
 
 ## Licence
 
