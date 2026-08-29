@@ -42,6 +42,16 @@ None of that is Homebrew's fault — a formula has to serve every build of
 a package. But when you want one tool, for one job, it's a lot of
 machinery to acquire and keep updated.
 
+## What's here
+
+| | |
+|---|---|
+| **Escaping a dependency tree** | `wget` (drops openssl@3, libidn2, libunistring, libpsl, gettext), `bloaty` (drops abseil, protobuf, capstone, re2), `rdfind` (drops nettle and gmp), `htop`, `pv` |
+| **One binary from a suite** | `ftp` and `telnet` (brew installs ~23 executables for these two), and all 105 GNU **coreutils** individually — `gtimeout` without the other 104 |
+| **Just convenient** | `jq`, `tree`, `doggo`, `mlr`, `xmlstarlet` |
+
+117 packages in total. `curl … | sh -s -- <name>` for any of them.
+
 ## What's in scope
 
 A utility earns its place here on any one of three grounds:
