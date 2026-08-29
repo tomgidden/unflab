@@ -12,6 +12,14 @@ on:
 permissions:
   contents: read
 
+# A full build is ~115 packages across two architectures and takes a
+# while. Without this, a run of pushes queues up behind itself and every
+# superseded run still burns a runner. Only the newest commit's result
+# matters, so cancel the rest.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     strategy:
