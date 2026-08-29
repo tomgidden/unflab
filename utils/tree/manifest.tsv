@@ -1,0 +1,4 @@
+bin	755	bin/tree	tree	-
+man1	644	share/man/man1/tree.1	tree.1	-
+doc	644	README.md	README.md	-
+doc	644	LICENSE	LICENSE	-
