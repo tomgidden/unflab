@@ -27,6 +27,19 @@ mkdir -p "$DOCS_DIR" "$EXTRA_DIR"
 
 field() { sed -n "s/^$1=//p" "$2" | tr -d '"' | head -1; }
 
+# Frontmatter values are YAML. A description containing a colon, a quote
+# or an apostrophe breaks the parse -- coreutils' logname ships "print
+# user\'s login name", roff escape and all, which took docmd's build
+# down. Strip stray backslash escapes, then emit a double-quoted scalar
+# with the two characters YAML cares about escaped.
+yaml_scalar() {
+  printf '%s' "$1" \
+    | sed -e 's/\\\(.\)/\1/g' \
+          -e 's/\\/\\\\/g' \
+          -e 's/"/\\"/g' \
+    | awk '{printf "\"%s\"", $0}'
+}
+
 # Class 1/2/3 -> the honest one-line reason this utility is here.
 class_text() {
   case "$1" in
@@ -88,7 +101,7 @@ for recipe in "$ROOT_DIR"/utils/*/recipe.sh; do
     {
       echo "---"
       echo "title: $pkg"
-      echo "description: $desc"
+      echo "description: $(yaml_scalar "$desc")"
       echo "---"
       echo ""
       echo "# $pkg"
@@ -148,7 +161,6 @@ echo "==> site-extra/get"
 {
   echo "---"
   echo "title: unflab"
-  echo "description: Small, self-contained macOS command-line tools."
   echo "---"
   echo ""
   sed -e "s|https://tomgidden.github.io/unflab|$BASE_URL|g" "$ROOT_DIR/README.md"

@@ -39,7 +39,7 @@ join	join lines of two files on a common field
 kill	send signals to processes, or list signals
 link	call the link function to create a link to a file
 ln	make links between files
-logname	print user\'s login name
+logname	print user's login name
 ls	list directory contents
 md5sum	compute and check MD5 message digest
 mkdir	make directories
