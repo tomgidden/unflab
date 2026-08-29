@@ -1,0 +1,63 @@
+name: Deploy docs to GitHub Pages
+
+# Rebuilds the site on pushes to main and whenever a release is
+# published, so the utility table and the bootstrap's index.txt track the
+# latest release rather than waiting for an unrelated commit.
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate docs, bootstrap and index from the recipes
+        run: scripts/generate-docs.sh
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - run: npm install -g @docmd/core@0.9.2
+      - run: docmd build
+
+      # `get` and `index.txt` are served as-is: the bootstrap has to come
+      # back as a shell script, not a rendered HTML page, or `curl | sh`
+      # would pipe markup into a shell.
+      - name: Add bootstrap and index to the built site
+        run: |
+          set -euo pipefail
+          cp site-extra/get site/get
+          cp site-extra/index.txt site/index.txt
+          # Served without an extension, so make sure it looks right.
+          head -1 site/get
+          test "$(head -c 2 site/get)" = '#!'
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
