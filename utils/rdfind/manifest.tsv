@@ -1,0 +1,4 @@
+bin	755	bin/rdfind	rdfind	-
+man1	644	share/man/man1/rdfind.1	rdfind.1	-
+doc	644	README.md	README.md	-
+doc	644	LICENSE	LICENSE	-
