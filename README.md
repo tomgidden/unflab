@@ -112,6 +112,21 @@ without a pinned checksum is refused.
 large toolchain behind your back — needing one to build a 50KB binary
 would rather defeat the point.
 
+## Notes on CI
+
+Builds run on GitHub's macOS runners, which bill at ten times the Linux
+rate. A full run is ~117 packages across two architectures and takes
+about twenty minutes, so pushing several times in a row can exhaust an
+account's included minutes. `build.yml` cancels superseded runs for this
+reason; if a run reports "the job was not started because recent account
+payments have failed or your spending limit needs to be increased",
+that's the cause, not the code.
+
+Publishing the docs site needs GitHub Pages, which isn't available for
+private repositories on all plans. The docs are built on every push
+regardless; deployment is behind a `UNFLAB_PAGES` repository variable,
+so set that to `1` once Pages is available.
+
 ## Licence
 
 This repository's own code — the recipes, the installer, the workflows —
