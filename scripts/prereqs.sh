@@ -53,6 +53,11 @@ for tool in $UNFLAB_TOOLCHAIN; do
         missing+=(autotools)
       fi ;;
     cmake)
+      if have cmake && cmake --version | head -1 | grep -qE '\b4\.'; then
+        echo "  WARN     cmake $(cmake --version | head -1 | awk '{print $3}') found;"
+        echo "           some recipes (bloaty) need CMake 3.x -- their"
+        echo "           vendored sources use policies CMake 4 removed."
+      fi
       have cmake && echo "  ok       cmake" || {
         echo "  MISSING  cmake"
         echo "           A large dependency for a small tool. Consider the"

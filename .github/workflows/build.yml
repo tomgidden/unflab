@@ -53,8 +53,17 @@ jobs:
           go-version: "1.26"
           cache: false
 
+      # Pinned to 3.x deliberately. CMake 4 removed CMP0048's OLD
+      # behaviour outright, and bloaty 1.1 (2020) vendors a capstone that
+      # asks for it explicitly -- CMAKE_POLICY_VERSION_MINIMUM cannot
+      # help, because the code requests a behaviour that no longer
+      # exists. Patching vendored third-party CMake files would mean
+      # carrying those patches; using the last CMake that supports them
+      # does not.
       - if: steps.toolchains.outputs.cmake == 'true'
         uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "3.31.6"
 
       - name: Build all utilities
         run: make all

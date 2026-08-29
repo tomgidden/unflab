@@ -36,6 +36,11 @@ self-contained binary that links only what macOS already provides.
 No man page: upstream doesn't ship one, and `bloaty --help` is the
 documentation.
 
+Building it yourself needs **CMake 3.x**, not 4: the vendored capstone
+asks for CMake policy `CMP0048 OLD`, which CMake 4 removed entirely.
+That's a consequence of v1.1 being from 2020 — the prebuilt package has
+none of this problem.
+
 ## Upstream
 
 - Source: https://github.com/google/bloaty

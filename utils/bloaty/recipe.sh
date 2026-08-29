@@ -24,14 +24,21 @@ unflab_build() {
   # and nothing is linked dynamically -- the four formulae Homebrew
   # installs are compiled straight into the binary.
   #
-  # CMAKE_POLICY_VERSION_MINIMUM=3.5 is required, not cosmetic: bloaty
-  # 1.1 is from 2020 and its vendored trees declare minimums as low as
-  # cmake_minimum_required(VERSION 2.6). CMake 4.x refuses anything below
-  # 3.5 outright, so without this the configure step fails before
-  # compiling a line.
+  # Needs CMake 3.x. bloaty 1.1 is from 2020 and its vendored trees
+  # declare minimums as low as cmake_minimum_required(VERSION 2.6);
+  # worse, the vendored capstone does `cmake_policy(SET CMP0048 OLD)`
+  # explicitly, and CMake 4 removed that policy's OLD behaviour
+  # altogether. CMAKE_POLICY_VERSION_MINIMUM does not help there -- the
+  # code asks for a behaviour that no longer exists -- so CI pins CMake
+  # 3.31 rather than carrying patches to third-party CMake files.
+  if cmake --version | head -1 | grep -qE '\b4\.'; then
+    echo "bloaty recipe: needs CMake 3.x; found $(cmake --version | head -1)." >&2
+    echo "Vendored capstone requires policy CMP0048 OLD, which CMake 4 removed." >&2
+    exit 1
+  fi
+
   cmake -S . -B build \
     -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
     -DBUILD_TESTING=OFF \
     >/dev/null
   cmake --build build -j "$(sysctl -n hw.ncpu)"
