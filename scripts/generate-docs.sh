@@ -53,9 +53,17 @@ for recipe in "$ROOT_DIR"/utils/*/recipe.sh; do
   packages="${packages:-$name}"
 
   # Line 1 of a recipe is "# <name> -- <description>".
-  desc="$(sed -n '1s/^#[^-]*-- *//p' "$recipe")"
+  recipe_desc="$(sed -n '1s/^#[^-]*-- *//p' "$recipe")"
 
   for pkg in $packages; do
+    # A multi-package recipe's shared summary ("GNU ftp and telnet
+    # clients") is wrong on an individual page, so prefer the first
+    # non-empty line of that package's own README.
+    desc="$recipe_desc"
+    if [[ -f "$dir/README-$pkg.md" ]]; then
+      pkg_desc="$(sed -n '3,8p' "$dir/README-$pkg.md" | grep -m1 -v '^$' || true)"
+      [[ -n "$pkg_desc" ]] && desc="$pkg_desc"
+    fi
     printf '%s\t%s\n' "$pkg" "$version" >> "$EXTRA_DIR/index.txt"
     rows="$rows| [\`$pkg\`]($pkg.md) | $desc | $version | $license |
 "
@@ -95,11 +103,14 @@ for recipe in "$ROOT_DIR"/utils/*/recipe.sh; do
       echo "and \`/System/\`, checked in CI before release."
       echo ""
 
-      # Fold in the package README's body, minus its title.
-      if [[ -f "$dir/README.md" ]]; then
+      # Fold in the package README's body, minus its title. A recipe
+      # emitting several packages gives each its own README-<pkg>.md.
+      readme="$dir/README-$pkg.md"
+      [[ -f "$readme" ]] || readme="$dir/README.md"
+      if [[ -f "$readme" ]]; then
         echo "---"
         echo ""
-        tail -n +2 "$dir/README.md"
+        tail -n +2 "$readme"
       fi
     } > "$DOCS_DIR/$pkg.md"
     echo "==> docs/$pkg.md"
