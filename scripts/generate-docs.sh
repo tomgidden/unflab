@@ -100,7 +100,10 @@ for recipe in "$ROOT_DIR"/utils/*/recipe.sh; do
 
     {
       echo "---"
-      echo "title: $pkg"
+      # Quoted, because coreutils ships utilities called true, false
+      # and yes -- all YAML booleans unquoted, which makes `title` a
+      # bool and breaks any plugin that calls a string method on it.
+      echo "title: $(yaml_scalar "$pkg")"
       echo "description: $(yaml_scalar "$desc")"
       echo "---"
       echo ""
