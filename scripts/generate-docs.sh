@@ -53,6 +53,18 @@ class_text() {
 : > "$EXTRA_DIR/index.txt"
 rows=""
 
+# Navigation entries, accumulated as pages are written. docmd builds its
+# sidebar from an explicit `navigation` array rather than the directory
+# layout, so it's generated here alongside the pages -- otherwise adding
+# a recipe would mean remembering to edit the config by hand.
+#
+# Recipes emitting one or two packages sit at the top level. A recipe
+# emitting many (coreutils' 105) becomes a collapsible group, so it
+# doesn't bury the dozen tools that are the point of the collection.
+NAV_TOP="$(mktemp)"
+NAV_GROUPS="$(mktemp)"
+trap 'rm -f "$NAV_TOP" "$NAV_GROUPS"' EXIT
+
 for recipe in "$ROOT_DIR"/utils/*/recipe.sh; do
   [[ -f "$recipe" ]] || continue
   dir="$(dirname "$recipe")"
@@ -95,6 +107,8 @@ for recipe in "$ROOT_DIR"/utils/*/recipe.sh; do
       [[ -n "$pkg_desc" ]] && desc="$pkg_desc"
     fi
     printf '%s\t%s\n' "$pkg" "$version" >> "$EXTRA_DIR/index.txt"
+    # <recipe> <package> <description>, consumed after the loop.
+    printf '%s\t%s\t%s\n' "$name" "$pkg" "$desc" >> "$NAV_GROUPS"
     rows="$rows| [\`$pkg\`]($pkg.md) | $desc | $version | $license |
 "
 
@@ -175,6 +189,70 @@ echo "==> site-extra/get"
   printf '%s' "$rows"
 } > "$DOCS_DIR/index.md"
 echo "==> docs/index.md"
+
+# --- navigation ------------------------------------------------------
+#
+# docmd's sidebar comes from a `navigation` array in docmd.config.json,
+# not from the directory layout, so write that config here from what was
+# just generated.
+#
+# Any recipe emitting more than NAV_GROUP_THRESHOLD packages becomes a
+# collapsible group. Without this, coreutils' 105 entries bury the dozen
+# other tools -- roughly 90% of the sidebar for one suite.
+NAV_GROUP_THRESHOLD="${NAV_GROUP_THRESHOLD:-3}"
+
+python3 - "$NAV_GROUPS" "$ROOT_DIR/docmd.config.json" "$BASE_URL" "$NAV_GROUP_THRESHOLD" <<'NAVGEN'
+import sys, json, collections
+
+entries_path, config_path, base_url, threshold = sys.argv[1:5]
+threshold = int(threshold)
+
+by_recipe = collections.OrderedDict()
+for line in open(entries_path):
+    recipe, pkg, desc = (line.rstrip("\n").split("\t") + ["", ""])[:3]
+    by_recipe.setdefault(recipe, []).append((pkg, desc))
+
+top, groups = [], []
+for recipe, pkgs in by_recipe.items():
+    if len(pkgs) > threshold:
+        # A static group label: no `path`, so the header just groups its
+        # children rather than linking to a page that doesn't exist.
+        groups.append({
+            "title": f"{recipe} ({len(pkgs)})",
+            "children": [
+                {"title": pkg, "path": f"/{pkg}"} for pkg, _ in sorted(pkgs)
+            ],
+        })
+    else:
+        top.extend({"title": pkg, "path": f"/{pkg}"} for pkg, _ in pkgs)
+
+top.sort(key=lambda e: e["title"])
+groups.sort(key=lambda g: g["title"])
+
+# Hand-maintained settings live in docmd.config.base.json and are
+# committed; only `navigation` is generated. Writing the whole config
+# here would mean every run showed a diff, and any theme tweak would be
+# silently overwritten.
+import os
+base_path = os.path.join(os.path.dirname(config_path), "docmd.config.base.json")
+if not os.path.exists(base_path):
+    sys.exit(f"generate-docs: missing {base_path} -- it holds the "
+             "hand-maintained docmd settings that navigation is merged into.")
+with open(base_path) as fh:
+    config = json.load(fh)
+
+config["url"] = base_url
+config["navigation"] = ([{"title": "Overview", "path": "/", "icon": "home"}]
+                        + top + groups)
+
+with open(config_path, "w") as fh:
+    json.dump(config, fh, indent=2)
+    fh.write("\n")
+
+print(f"==> docmd.config.json ({len(top)} top-level, "
+      f"{len(groups)} group(s): "
+      f"{', '.join(g['title'] for g in groups) or 'none'})")
+NAVGEN
 
 # Frontmatter is YAML, and two separate bugs have reached CI through it:
 # an apostrophe from a man page (logname), and utilities named true,

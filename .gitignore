@@ -12,3 +12,4 @@
 /docs/index.md
 /docs/*.md
 !/docs/assets/
+/docmd.config.json

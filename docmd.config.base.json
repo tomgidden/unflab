@@ -1,0 +1,10 @@
+{
+  "title": "unflab",
+  "url": "https://tomgidden.github.io/unflab",
+  "theme": {
+    "sidebar": {
+      "collapsible": true,
+      "defaultCollapsed": true
+    }
+  }
+}
