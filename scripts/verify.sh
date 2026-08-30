@@ -15,21 +15,33 @@
 # Usage: scripts/verify.sh [--script-only] <file-or-dir> [...]
 #   Directories are searched for Mach-O executables.
 #
-# --script-only: the package legitimately ships no compiled binary (webi
-# is a shell script), so finding no Mach-O is the expected result rather
-# than a sign the build staged nothing. The gate itself is unchanged --
-# any Mach-O that IS present is still checked.
+# A package that ships no compiled binary at all (webi is a shell
+# script) is fine, but an EMPTY package -- a build that staged nothing --
+# is not, and the two look alike if you only count Mach-O files. So
+# executable scripts are counted too: finding only scripts is a
+# script-only package, finding nothing at all is still an error.
+#
+# --script-only says so explicitly, for a caller that knows in advance.
+# Either way the gate is unchanged: any Mach-O present is still checked.
 
 set -euo pipefail
 
 fail=0
 checked=0
+scripts=0
 
 check_one() {
   local f="$1"
+  local type
+  type="$(file -b "$f")"
 
-  # Only Mach-O binaries: skip scripts, man pages, licences.
-  file -b "$f" | grep -q 'Mach-O' || return 0
+  # Only Mach-O binaries get the gate. An executable script still counts
+  # as something shipped, so an empty package stays distinguishable from
+  # a deliberately script-only one.
+  if ! grep -q 'Mach-O' <<<"$type"; then
+    grep -qE 'script|text executable' <<<"$type" && scripts=$((scripts + 1))
+    return 0
+  fi
 
   checked=$((checked + 1))
 
@@ -80,15 +92,15 @@ for target in "$@"; do
 done
 
 if [[ "$checked" -eq 0 ]]; then
-  # Normally this means the build staged nothing and the package is
-  # empty -- a silent failure worth catching loudly. A script-only
-  # recipe says so up front, so there it's simply the expected outcome.
-  if [[ "$script_only" -eq 0 ]]; then
-    echo "verify.sh: no Mach-O binaries found in: $*" >&2
+  # No compiled binary. That's either a script-only package or a build
+  # that staged nothing -- and the difference is whether anything
+  # executable shipped at all.
+  if [[ "$script_only" -eq 0 && "$scripts" -eq 0 ]]; then
+    echo "verify.sh: nothing executable found in: $*" >&2
     exit 2
   fi
 
-  echo "verify.sh: no binaries to check (script-only package)."
+  echo "verify.sh: no compiled binaries to check ($scripts script(s) shipped)."
   exit 0
 fi
 

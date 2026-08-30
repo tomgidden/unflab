@@ -13,8 +13,11 @@
 # packaging their installer with ours says so more clearly than a
 # paragraph of README ever could. See "Why not webi?" in the README.
 #
-# This is the only recipe that ships no compiled binary, which is why
-# it sets UNFLAB_SCRIPT_ONLY (see scripts/verify.sh).
+# This is the only recipe that ships no compiled binary. verify.sh works
+# that out on its own -- a package with executable scripts but no Mach-O
+# is script-only, while one with nothing executable is an empty build --
+# so UNFLAB_SCRIPT_ONLY only states it up front, for a clearer failure
+# if this recipe ever stops staging anything.
 
 UNFLAB_NAME=webi
 UNFLAB_VERSION=1.3.2
