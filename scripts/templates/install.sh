@@ -71,6 +71,10 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 BASE=$(dirname "$PREFIX")
 MANDIR="$BASE/share/man/man1"
 DOCDIR="$BASE/share/doc/$UTIL"
+# Arch-independent files the program reads at run time (btop's themes).
+# btop finds these relative to its own binary -- ../share/btop/themes --
+# so this layout works under any prefix without a compiled-in path.
+DATADIR="$BASE/share/$UTIL"
 CONFDIR="${XDG_CONFIG_HOME:-$HOME/.config}/$UTIL"
 
 installed_count=0
@@ -87,6 +91,7 @@ dest_dir_for() {
     bin)        printf '%s' "$PREFIX" ;;
     man1)       printf '%s' "$MANDIR" ;;
     doc)        printf '%s' "$DOCDIR" ;;
+    data)       printf '%s' "$DATADIR" ;;
     config)     printf '%s' "$CONFDIR" ;;
     completion) printf '%s' "$BASE/share/bash-completion/completions" ;; # XXX: zsh?
     *)          return 1 ;;
@@ -177,7 +182,9 @@ UNFLAB_EOF
 
   # Only prune directories we own, and only when empty -- never $PREFIX
   # or $MANDIR, which belong to the user and hold other tools' files.
-  for d in "$DOCDIR" "$CONFDIR"; do
+  # $DATADIR is listed after its own subdirectories: rmdir only removes
+  # an empty directory, so themes/ has to go before share/btop/ can.
+  for d in "$DATADIR"/* "$DATADIR" "$DOCDIR" "$CONFDIR"; do
     # If it exists, try to remove it. If it has contents, it'll fail.
     # If it doesn't exist, we don't mention it.
     [ -d "$d" ] && rmdir "$d" 2>/dev/null && echo "Removed empty $d"
@@ -221,8 +228,11 @@ while IFS='	' read -r kind mode src dest plain; do
     continue
   fi
 
-  # Install the file
-  install -d -m 755 "$dir"
+  # Install the file. A dest may name a subdirectory (btop's
+  # themes/<name>.theme), so create the parent of the destination
+  # rather than just $dir -- dirname gives back "." for a plain name,
+  # which makes this the same operation in the common case.
+  install -d -m 755 "$dir/$(dirname "$dest")"
   install -m "$mode" "$SCRIPT_DIR/$src" "$dir/$dest"
   echo "Installed $dir/$dest"
   installed_count=$((installed_count + 1))
