@@ -7,7 +7,7 @@
 # macOS
 .DS_Store
 
-# Generated at deploy time by scripts/generate-docs.sh
+# Generated at deploy time by scripts/generate-docs.py
 /site-extra/
 /docs/index.md
 /docs/*.md

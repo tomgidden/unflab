@@ -109,7 +109,8 @@ is_config_kind() { [ "$1" = "config" ]; }
 remove_own_file() {
   target="$1"
 
-  # If it exists, or is a symlink, it's ours to remove. -- XXX: is this right? Doesn't `-e` cover `-L`?
+  # If it exists, or is a symlink, it's ours to remove.
+  # XXX: is this right? Doesn't `-e` cover `-L`?
   [ -e "$target" ] || [ -L "$target" ] || return 0
 
   # Remove it.

@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# {{BASE_URL}}/
+# https://unflab.app/
 #
 ## unflab bootstrap. Fetched and piped to a shell:
 #
@@ -134,9 +134,9 @@ INDEX="$($CURL "$BASE_URL/index.txt" 2>/dev/null || true)"
 # for an error, or just print it for something like --list.
 available_utilities() {
   printf '%s\n' "$INDEX" | awk -F'\t' '
-    { name[NR]=$1; ver[NR]=$2
+    { name[NR]=$1; ver[NR]=$3
       if (length($1) > m) m = length($1)
-      if (length($2) > v) v = length($2) }
+      if (length($3) > v) v = length($3) }
     END {
       m += 2; v += 2
       for (i = 1; i <= NR; i++) {
@@ -180,8 +180,8 @@ esac
 unknown=""
 for u in $utils; do
   found=0
-  # index.txt lines are: <name> <TAB> <version>
-  while IFS='	' read -r name version; do
+  # index.txt lines are: <name> <TAB> <recipe> <TAB> <version>
+  while IFS='	' read -r name recipe version; do
     [ "$name" = "$u" ] && { found=1; break; }
   done <<INDEX_EOF
 $INDEX
@@ -220,7 +220,7 @@ for u in $utils; do
   version=""
 
   # Get the version from the index
-  while IFS='	' read -r name v; do
+  while IFS='	' read -r name recipe v; do
     [ "$name" = "$u" ] && { version="$v"; break; }
   done <<INDEX_EOF
 $INDEX

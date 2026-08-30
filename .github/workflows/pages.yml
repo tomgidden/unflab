@@ -26,8 +26,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # PyYAML is only used to validate the generated frontmatter --
+      # the generator runs without it, just without that check, so this
+      # is deliberately a separate, non-fatal step.
+      - name: Install PyYAML (frontmatter validation)
+        run: python3 -m pip install --quiet pyyaml || true
+
       - name: Generate docs, bootstrap and index from the recipes
-        run: scripts/generate-docs.sh
+        run: scripts/generate-docs.py
 
       - uses: actions/setup-node@v4
         with:

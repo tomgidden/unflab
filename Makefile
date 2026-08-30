@@ -40,7 +40,7 @@ PREFIX ?= $(HOME)/.local/bin
 # Only genuine phonies here: naming the pattern-rule targets (%.build
 # etc) in .PHONY stops those rules matching at all, and make then reports
 # "nothing to be done".
-.PHONY: list packages all clean $(UTILS) $(PACKAGES)
+.PHONY: list packages all docs clean $(UTILS) $(PACKAGES)
 
 # `make list` lists every utility currently available to build.
 list:
@@ -66,6 +66,7 @@ list:
 	@echo "Try:  make ‹name›          to see what you can do with one"
 	@echo "      make all             to build everything"
 	@echo "      make packages        to list every installable package"
+	@echo "      make docs            to regenerate the docs site's content"
 	@echo ""
 
 # `make ‹utility›` explains rather than guessing which action was meant.
@@ -153,6 +154,12 @@ packages:
 all:
 	@for u in $(UTILS); do $(ROOT)/scripts/build.sh $$u || exit 1; done
 
+# The docs site's content, generated from the recipes so it can't drift
+# from what the project actually builds. Needs PyYAML only to validate
+# the frontmatter it writes; it runs without it.
+docs:
+	@$(ROOT)/scripts/generate-docs.py
+
 clean:
-	@rm -rf $(ROOT)/.build $(ROOT)/out $(ROOT)/dist
-	@echo "Removed .build/, out/ and dist/"
+	@rm -rf $(ROOT)/build $(ROOT)/out $(ROOT)/dist
+	@echo "Removed build/, out/ and dist/"

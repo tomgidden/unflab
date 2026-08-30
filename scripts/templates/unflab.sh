@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# {{BASE_URL}}/
+# https://unflab.app/
 #
 # unflab -- install and remove unflab utilities.
 #
