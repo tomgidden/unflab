@@ -25,13 +25,28 @@ import re
 import subprocess
 import sys
 
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SCRIPT_DIR = os.path.join(ROOT_DIR, "scripts")
+# This script's directory.
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# The repo's root directory.
+ROOT_DIR = os.path.dirname(SCRIPT_DIR)
+
+# The destination directory for the docs for the GitHub Pages site.
 DOCS_DIR = os.path.join(ROOT_DIR, "docs")
+
+# The extra (non-docmd) files for the GitHub Pages site.
 EXTRA_DIR = os.path.join(ROOT_DIR, "site-extra")
 
+# The GH name of the repo
 REPO = os.environ.get("UNFLAB_REPO", "tomgidden/unflab")
+
+# The URL to use for the bootstrap.
 BASE_URL = os.environ.get("UNFLAB_BASE_URL", "https://unflab.app")
+
+# Template for the index page
+INDEX_TEMPLATE = os.path.join(ROOT_DIR, "README.md")
+
+# The URL to use for the bootstrap's release assets.
 RELEASE_URL = os.environ.get(
     "UNFLAB_RELEASE_URL",
     f"https://github.com/{REPO}/releases/latest/download",
@@ -44,7 +59,7 @@ RELEASE_URL = os.environ.get(
 NAV_GROUP_THRESHOLD = int(os.environ.get("NAV_GROUP_THRESHOLD", "3"))
 
 
-# ---------------------------------------------------------------- recipes
+# Recipes
 
 def field(name, path):
     """Scrape a simple KEY=value line out of a recipe."""
@@ -79,12 +94,14 @@ def describe(dir_, pkg, recipe_desc):
     clients") is wrong on an individual page, so prefer a description
     from the package's own README, or the recipe's descriptions.tsv.
     """
+
+    # Load the package-specific README, if it exists.
     readme = os.path.join(dir_, f"README-{pkg}.md")
     if os.path.exists(readme):
         # Skip the heading; take the first non-empty line after it.
         for line in open(readme, encoding="utf-8").read().splitlines()[2:8]:
-            if line.strip():
-                return line.strip()
+            # If that line is non-empty, return it.
+            if line.strip(): return line.strip()
 
     tsv = os.path.join(dir_, "descriptions.tsv")
     if os.path.exists(tsv):
@@ -120,8 +137,8 @@ def yaml_scalar(s):
     s = re.sub(r"\\(.)", r"\1", s)
     return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
-
-# ------------------------------------------------------------- collect
+# Collect
+# -------
 
 Package = collections.namedtuple(
     "Package", "name recipe version license homepage source desc dir class_"
@@ -165,7 +182,8 @@ counts = collections.Counter(p.recipe for p in packages)
 big = {r for r, n in counts.items() if n > NAV_GROUP_THRESHOLD}
 
 
-# -------------------------------------------------------------- pages
+# Pages
+# -----
 
 for p in packages:
     out = [
@@ -228,7 +246,8 @@ for p in packages:
     print(f"==> docs/{p.name}.md")
 
 
-# ----------------------------------------------------------- index.txt
+# index.txt
+# ---------
 
 # <name> <TAB> <recipe> <TAB> <version>, sorted by name. `get` reads
 # this to resolve a name to a release asset.
@@ -237,7 +256,8 @@ with open(os.path.join(EXTRA_DIR, "index.txt"), "w", encoding="utf-8") as fh:
         fh.write(f"{p.name}\t{p.recipe}\t{p.version}\n")
 
 
-# ------------------------------------------------------- site-extra
+# site-extra
+# ----------
 
 for template, out_name in (("get.sh", "get"), ("unflab.sh", "unflab")):
     src = open(os.path.join(SCRIPT_DIR, "templates", template),
@@ -251,7 +271,9 @@ for template, out_name in (("get.sh", "get"), ("unflab.sh", "unflab")):
     print(f"==> site-extra/{out_name}")
 
 
-# -------------------------------------------------------- index page
+# index page
+# ----------
+
 
 def table(rows):
     out = ["| Utility | What it does | Original Package | Version | Licence |",
@@ -262,10 +284,18 @@ def table(rows):
     return out
 
 
-readme = open(os.path.join(ROOT_DIR, "README.md"), encoding="utf-8").read()
-readme = readme.replace("https://unflab.app", BASE_URL)
+index_template = open(INDEX_TEMPLATE, encoding="utf-8").read()
+index_template = index_template.replace("https://unflab.app", BASE_URL)
 
-index = ["---", "title: unflab", "---", "", readme, "", "## Available now", ""]
+# Add a link above the first ## heading, so it's easy to find.
+index_template = index_template.replace(
+    "\n##", 
+    "\n* [Skip to the package list](#available-now)\n##",
+    1
+)
+
+# Start by building the list of packages
+index = []
 
 # Small recipes first, alphabetically. A big suite goes in its own
 # table below rather than swamping this one -- same reasoning as the
@@ -279,12 +309,17 @@ for recipe in sorted(big):
     index += ["", f"### {recipe} ({len(rows)})", ""]
     index += table(rows)
 
+# Add the table at the first --- divider in the template.
+preamble, postamble = index_template.split("---", 1)
+index = ["---", "title: unflab", "---", "", preamble, "", "## Available now", ""] + index + [ postamble ]
+
 with open(os.path.join(DOCS_DIR, "index.md"), "w", encoding="utf-8") as fh:
     fh.write("\n".join(index).rstrip("\n") + "\n")
 print("==> docs/index.md")
 
 
-# ------------------------------------------------------------ sidebar
+# Sidebar
+# -------
 
 # docmd's sidebar comes from a `navigation` array in docmd.config.json,
 # not from the directory layout, so write that here from what was just
@@ -327,7 +362,8 @@ print(f"==> docmd.config.json ({len(top)} top-level, {len(groups)} group(s): "
       f"{', '.join(g['title'] for g in groups) or 'none'})")
 
 
-# --------------------------------------------------------- validation
+# Validation
+# ----------
 
 # Catch the frontmatter traps before docmd does: punctuation that breaks
 # the parse, and utilities called "true", "yes" and "false" that YAML
