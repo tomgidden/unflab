@@ -12,8 +12,13 @@
 # libnettle.a, headers, tooling); this check is what proves none of it
 # survived into the artefact.
 #
-# Usage: scripts/verify.sh <file-or-dir> [...]
+# Usage: scripts/verify.sh [--script-only] <file-or-dir> [...]
 #   Directories are searched for Mach-O executables.
+#
+# --script-only: the package legitimately ships no compiled binary (webi
+# is a shell script), so finding no Mach-O is the expected result rather
+# than a sign the build staged nothing. The gate itself is unchanged --
+# any Mach-O that IS present is still checked.
 
 set -euo pipefail
 
@@ -54,7 +59,13 @@ check_one() {
   fi
 }
 
-[[ $# -gt 0 ]] || { echo "usage: verify.sh <file-or-dir> [...]" >&2; exit 2; }
+script_only=0
+if [[ "${1:-}" == "--script-only" ]]; then
+  script_only=1
+  shift
+fi
+
+[[ $# -gt 0 ]] || { echo "usage: verify.sh [--script-only] <file-or-dir> [...]" >&2; exit 2; }
 
 for target in "$@"; do
   if [[ -d "$target" ]]; then
@@ -69,8 +80,16 @@ for target in "$@"; do
 done
 
 if [[ "$checked" -eq 0 ]]; then
-  echo "verify.sh: no Mach-O binaries found in: $*" >&2
-  exit 2
+  # Normally this means the build staged nothing and the package is
+  # empty -- a silent failure worth catching loudly. A script-only
+  # recipe says so up front, so there it's simply the expected outcome.
+  if [[ "$script_only" -eq 0 ]]; then
+    echo "verify.sh: no Mach-O binaries found in: $*" >&2
+    exit 2
+  fi
+
+  echo "verify.sh: no binaries to check (script-only package)."
+  exit 0
 fi
 
 if [[ "$fail" -ne 0 ]]; then

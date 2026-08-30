@@ -221,8 +221,14 @@ for PKG in $UNFLAB_PACKAGES; do
     echo "build.sh: no manifest for $PKG" >&2; exit 1
   fi
 
-  # Verify before anything can be packaged.
-  "$SCRIPT_DIR/verify.sh" "$STAGE_DIR"
+  # Verify before anything can be packaged. A script-only recipe (webi)
+  # ships no compiled binary, so tell verify.sh that finding no Mach-O
+  # is expected there rather than an empty-package bug.
+  # Not an array: macOS ships bash 3.2, where expanding an empty array
+  # under `set -u` is an "unbound variable" error rather than nothing.
+  verify_flag=""
+  [[ "${UNFLAB_SCRIPT_ONLY:-0}" == "1" ]] && verify_flag="--script-only"
+  "$SCRIPT_DIR/verify.sh" ${verify_flag:+"$verify_flag"} "$STAGE_DIR"
 done
 
 echo "==> Done: $UNFLAB_PACKAGES"

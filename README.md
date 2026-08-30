@@ -48,9 +48,9 @@ machinery to acquire and keep updated.
 |---|---|
 | **Escaping a dependency tree** | `wget` (drops openssl@3, libidn2, libunistring, libpsl, gettext), `bloaty` (drops abseil, protobuf, capstone, re2), `rdfind` (drops nettle and gmp), `htop`, `pv` |
 | **One binary from a suite** | `ftp` and `telnet` (brew installs ~23 executables for these two), and all 105 GNU **coreutils** individually — `gtimeout` without the other 104 |
-| **Just convenient** | `jq`, `tree`, `doggo`, `mlr`, `xmlstarlet` |
+| **Just convenient** | `jq`, `tree`, `doggo`, `mlr`, `xmlstarlet`, `webi` |
 
-117 packages in total. `curl … | sh -s -- <name>` for any of them.
+118 packages in total. `curl … | sh -s -- <name>` for any of them.
 
 Currently built for **Apple Silicon** only; Intel support is a
 one-line change to the build matrix if it's wanted.
@@ -67,6 +67,44 @@ A utility earns its place here on any one of three grounds:
 
 Each package's README says which of these applies. A tool in group 3
 isn't pretending to rescue you from anything.
+
+## Why not webi?
+
+[webinstall.dev](https://webinstall.dev) covers a lot of the same
+ground: `curl … | sh`, installs into `~/.local`, no package manager, no
+root. If you already use it, keep using it — this isn't an argument that
+you picked wrong.
+
+The differences are real, though, and they're mostly about scope:
+
+- **webi downloads, unflab compiles.** webi fetches the binaries
+  upstreams already publish. That's faster, covers far more tools, and
+  needs no build infrastructure at all — but it can only offer what an
+  upstream chose to ship, exactly as they built it. unflab compiles from
+  source, so a package can be built *without* the dependencies its
+  Homebrew formula would drag in. That's the whole point of the group-1
+  packages: nobody publishes a `wget` with openssl statically linked in,
+  so it has to be built.
+- **webi is multi-platform, unflab is macOS-only.** macOS is the
+  platform where this problem bites — no package manager in the box, and
+  a userland old enough that `timeout` simply isn't there. On Linux the
+  distro already solved it.
+- **Different rosters.** webi leans towards web-dev tooling; unflab
+  leans towards Unix plumbing, and is the only one of the two that will
+  hand you a single `gtimeout`.
+- **unflab checks what it ships.** Every binary is put through the
+  `otool -L` gate in CI. webi is passing along someone else's artefact,
+  so there's nothing equivalent for it to check.
+
+None of that makes them mutually exclusive, and plenty of tools are
+better got from webi. So it's packaged here too:
+
+```sh
+curl -fsSL https://unflab.app/get | sh -s -- webi
+```
+
+Which is a slightly absurd thing for one installer to do to another, but
+it seemed friendlier than a paragraph explaining that we're not rivals.
 
 ## What "self-contained" means
 

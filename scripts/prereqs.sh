@@ -20,7 +20,16 @@ RECIPE="$ROOT_DIR/utils/$NAME/recipe.sh"
 # Read the declaration without running the build functions.
 UNFLAB_TOOLCHAIN="$(sed -n 's/^UNFLAB_TOOLCHAIN=//p' "$RECIPE" | tr -d '"' )"
 
-echo "$NAME needs: ${UNFLAB_TOOLCHAIN:-(unspecified)}"
+# An empty UNFLAB_TOOLCHAIN is a deliberate "nothing to build" (webi),
+# not a recipe that forgot to say -- but the scrape above yields an
+# empty string either way, so ask the recipe whether the line exists.
+if [[ -n "$UNFLAB_TOOLCHAIN" ]]; then
+  echo "$NAME needs: $UNFLAB_TOOLCHAIN"
+elif grep -q '^UNFLAB_TOOLCHAIN=' "$RECIPE"; then
+  echo "$NAME needs: nothing -- no compile step."
+else
+  echo "$NAME needs: (unspecified)"
+fi
 echo ""
 
 missing=()
