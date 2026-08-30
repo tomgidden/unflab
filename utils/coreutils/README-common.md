@@ -28,8 +28,8 @@ Pass `--no-plain` if you only ever want the `g` name.
 
 One binary, its man page, and nothing else — built from the GNU coreutils
 release tarball and linked only against libraries macOS itself provides.
-`brew install coreutils` gives you all 105 as a single unit; this is
-whichever one you actually wanted.
+`brew install coreutils` gives you the whole suite as a single unit;
+this is whichever one you actually wanted.
 
 Built `--disable-nls`: coreutils' translation catalogues are
 whole-project rather than per-utility, so shipping translated messages

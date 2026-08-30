@@ -61,7 +61,7 @@ list:
 	@echo "Targets take either a package or a recipe name:"
 	@echo "  make ftp.install         just ftp"
 	@echo "  make inetutils.install   everything that recipe builds (ftp, telnet)"
-	@echo "  make coreutils.install   all 105, if you really want them"
+	@echo "  make coreutils.install   the whole suite, if you really want it"
 	@echo ""
 	@echo "Try:  make ‹name›          to see what you can do with one"
 	@echo "      make all             to build everything"
@@ -121,7 +121,7 @@ $(UTILS):
 # Targets can name either a package or a recipe, and both are useful:
 # `make ftp.install` installs the one binary you want, while
 # `make inetutils.install` installs everything that recipe produces and
-# `make coreutils.install` installs all 105 deliberately. resolve.sh maps
+# `make coreutils.install` installs the whole suite deliberately. resolve.sh maps
 # the name to the recipe that builds it and to the package(s) it means,
 # so building and installing can differ in granularity.
 

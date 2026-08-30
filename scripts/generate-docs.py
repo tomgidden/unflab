@@ -39,8 +39,8 @@ RELEASE_URL = os.environ.get(
 
 # A recipe emitting more than this many packages becomes a collapsible
 # sidebar group, and moves to its own table at the foot of the index.
-# Without it, coreutils' 105 entries bury the dozen other tools that are
-# the point of the collection -- roughly 90% of the page for one suite.
+# Without it, coreutils' entries bury the handful of other tools that
+# are the point of the collection.
 NAV_GROUP_THRESHOLD = int(os.environ.get("NAV_GROUP_THRESHOLD", "3"))
 
 
@@ -210,8 +210,8 @@ for p in packages:
 
     # Fold in the package README's body, minus its title. A recipe
     # emitting several packages gives each its own README-<pkg>.md;
-    # a big suite may instead share one README-common.md, since 105
-    # near-identical files would be silly.
+    # a big suite may instead share one README-common.md, since a wall
+    # of near-identical files would be silly.
     for candidate in (f"README-{p.name}.md", "README-common.md", "README.md"):
         path = os.path.join(p.dir, candidate)
         if os.path.exists(path):

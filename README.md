@@ -47,10 +47,10 @@ machinery to acquire and keep updated.
 | | |
 |---|---|
 | **Escaping a dependency tree** | `wget` (drops openssl@3, libidn2, libunistring, libpsl, gettext), `bloaty` (drops abseil, protobuf, capstone, re2), `rdfind` (drops nettle and gmp), `htop`, `pv` |
-| **One binary from a suite** | `ftp` and `telnet` (brew installs ~23 executables for these two), and all 105 GNU **coreutils** individually — `gtimeout` without the other 104 |
+| **One binary from a suite** | `ftp` and `telnet` (brew installs ~23 executables for these two), and the GNU **coreutils** individually — `gtimeout` on its own |
 | **Just convenient** | `jq`, `tree`, `doggo`, `mlr`, `xmlstarlet`, `webi` |
 
-118 packages in total. `curl … | sh -s -- <name>` for any of them.
+`curl … | sh -s -- <name>` for any of them.
 
 Currently built for **Apple Silicon** only; Intel support is a
 one-line change to the build matrix if it's wanted.
@@ -175,7 +175,7 @@ one recipe builds several packages:
 ```sh
 make ftp.install         # just ftp
 make inetutils.install   # everything that recipe builds (ftp, telnet)
-make coreutils.install   # all 105, if you really want them
+make coreutils.install   # the whole suite, if you really want it
 make timeout.install     # builds coreutils, installs only timeout
 ```
 

@@ -4,7 +4,7 @@
 #
 # The two namespaces overlap on purpose. Most recipes emit one package of
 # the same name (tree, jq, wget), but some emit several: inetutils emits
-# ftp and telnet, coreutils emits 105. Both granularities are useful --
+# ftp and telnet, coreutils one per utility. Both granularities are useful --
 # `make ftp.install` for the one binary you want, `make coreutils.install`
 # for the whole suite deliberately -- so both have to resolve.
 #

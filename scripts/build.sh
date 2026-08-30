@@ -10,7 +10,7 @@
 #
 # unflab_stage runs once per entry in UNFLAB_PACKAGES, with $PKG set, so
 # one source tree can emit several independent packages (inetutils' ftp
-# and telnet; coreutils' ~105).
+# and telnet; every one of coreutils').
 
 # This script is run by CI, so it's a bit more strict
 set -euo pipefail
@@ -215,7 +215,7 @@ for PKG in $UNFLAB_PACKAGES; do
     cp "$RECIPE_DIR/manifest.tsv" "$STAGE_DIR/.unflab/manifest.tsv"
 
   elif [[ -f "$STAGE_DIR/.unflab/manifest.tsv" ]]; then
-    : # recipe generated it itself (coreutils' ~105)
+    : # recipe generated it itself (coreutils does)
 
   else
     echo "build.sh: no manifest for $PKG" >&2; exit 1

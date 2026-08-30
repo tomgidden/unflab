@@ -1,9 +1,9 @@
 # coreutils -- the GNU core utilities, one package each
 #
 # Class 2 (suite extraction), at the largest scale here: `brew install
-# coreutils` builds and installs all 105 as a single unit. This builds
-# the same source and emits 105 independent packages, so you can have
-# just gtimeout, or just gshuf, without the other 104.
+# coreutils` builds and installs the whole suite as a single unit. This
+# builds the same source and emits one independent package per utility,
+# so you can have just gtimeout, or just gshuf, on its own.
 
 UNFLAB_NAME=coreutils
 UNFLAB_VERSION=9.11
@@ -14,7 +14,7 @@ UNFLAB_SHA256=394024eda0a5955217ceda9cd1201e65dc8fa3aa29c2951135a49521d57c3cc3
 UNFLAB_TOOLCHAIN="c autotools make"
 UNFLAB_CLASS=2
 
-# All 105 utilities coreutils 9.11 actually builds on macOS. chcon and
+# Every utility coreutils actually builds on macOS. chcon and
 # runcon are excluded because they're gated on SELinux in coreutils' own
 # configure.ac -- under --without-selinux `make src/chcon` has no target
 # at all, so they aren't a "builds but does nothing" case.
@@ -32,8 +32,7 @@ unflab_build() {
   #
   # --disable-nls: coreutils' .po catalogues are whole-project, not
   # per-utility, so a translated timeout would mean shipping ~45
-  # languages' catalogues for the entire suite in every one of 105
-  # packages.
+  # languages' catalogues for the entire suite in every package.
   ./configure \
     --disable-nls \
     --disable-year2038 \
@@ -87,8 +86,8 @@ unflab_stage() {
   [ -f "man/$PKG.1" ] && install -m 644 "man/$PKG.1" "$STAGE_DIR/share/man/man1/g$PKG.1"
   install -m 644 COPYING "$STAGE_DIR/LICENSE"
 
-  # 105 hand-written READMEs would be 105 things to drift, so generate
-  # each from the utility's own --help summary.
+  # A hand-written README per utility would be that many things to
+  # drift, so generate each from the utility's own --help summary.
   {
     echo "# g$PKG (unflab build)"
     echo ""
