@@ -102,29 +102,32 @@ jobs:
             fi
           done
 
-      # index.txt is what `get` reads to reject an unknown name before
-      # downloading. Derived from the recipes, then checked against the
-      # archives that actually exist so the two can't drift.
+      # index.txt is what `get` reads to resolve a name to a release
+      # asset. The generator writes it, rather than this workflow
+      # rebuilding the same thing in YAML -- the column layout is a
+      # contract with `get`, and one definition of it is enough.
       - name: Generate index.txt
         run: |
           set -euo pipefail
-          : > dist/index.txt
-          for r in utils/*/recipe.sh; do
-            dir=$(dirname "$r")
-            name=$(sed -n 's/^UNFLAB_NAME=//p' "$r" | tr -d '"')
-            version=$(sed -n 's/^UNFLAB_VERSION=//p' "$r" | tr -d '"')
-            packages=$(RECIPE_DIR="$dir" bash -c '. "$1" >/dev/null 2>&1 || true; printf "%s" "${UNFLAB_PACKAGES:-$UNFLAB_NAME}"' _ "$r")
-            for p in ${packages:-$name}; do
-              if ls dist/unflab-"$p"-"$version"-*.tar.gz >/dev/null 2>&1; then
-                printf '%s\t%s\n' "$p" "$version" >> dist/index.txt
-              else
-                echo "no archive for $p $version" >&2
-                exit 1
-              fi
-            done
-          done
-          sort -o dist/index.txt dist/index.txt
-          echo "index.txt: $(wc -l < dist/index.txt) packages"
+          scripts/generate-docs.py >/dev/null
+          cp site-extra/index.txt dist/index.txt
+
+      # ...then check it against the archives that actually exist, so a
+      # recipe that failed to produce one can't ship an index promising
+      # a download that 404s.
+      - name: Check every indexed package has an archive
+        run: |
+          set -euo pipefail
+          missing=0
+          while IFS=$'\t' read -r name recipe version; do
+            [ -n "$name" ] || continue
+            if ! ls dist/unflab-"$name"-"$version"-*.tar.gz >/dev/null 2>&1; then
+              echo "no archive for $name $version" >&2
+              missing=$((missing + 1))
+            fi
+          done < dist/index.txt
+          [ "$missing" -eq 0 ] || exit 1
+          echo "index.txt: $(wc -l < dist/index.txt) packages, all present"
 
       - uses: softprops/action-gh-release@v2
         with:
