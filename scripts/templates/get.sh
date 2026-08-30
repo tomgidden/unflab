@@ -27,12 +27,26 @@ RELEASE_URL="{{RELEASE_URL}}"
 
 utils=""
 flags=""
+prefix=""
+want_prefix=0
 for arg in "$@"; do
+  if [ "$want_prefix" = 1 ]; then
+    prefix="$arg"; flags="$flags $arg"; want_prefix=0; continue
+  fi
   case "$arg" in
-    -*) flags="$flags $arg" ;;
-    *)  utils="$utils $arg" ;;
+    --prefix)   flags="$flags $arg"; want_prefix=1 ;;
+    --prefix=*) prefix="${arg#--prefix=}"; flags="$flags $arg" ;;
+    -*)         flags="$flags $arg" ;;
+    *)          utils="$utils $arg" ;;
   esac
 done
+prefix="${prefix:-$HOME/.local/bin}"
+
+# --uninstall and --purge shouldn't leave a helper behind.
+removing=0
+case " $flags " in
+  *" --uninstall "*|*" --purge "*) removing=1 ;;
+esac
 
 if [ -z "$utils" ]; then
   cat >&2 <<USAGE
@@ -159,12 +173,60 @@ INDEX_EOF
   echo ""
 done
 
+# Drop in a small `unflab` command so installing or removing something
+# else doesn't mean finding this URL again. It is a wrapper around this
+# very script -- no state, no database -- and the note below says so, and
+# says it's safe to delete.
+install_helper() {
+  [ "$removing" = 1 ] && return 0
+  [ -n "$ok" ] || return 0
+  [ -f "$prefix/unflab" ] && return 0
+
+  helper="$TMP/unflab"
+  $CURL -o "$helper" "$BASE_URL/unflab" 2>/dev/null || return 0
+  [ -s "$helper" ] || return 0
+  head -1 "$helper" | grep -q '^#!' || return 0
+
+  mkdir -p "$prefix" 2>/dev/null || return 0
+  cp "$helper" "$prefix/unflab" 2>/dev/null || return 0
+  chmod +x "$prefix/unflab" 2>/dev/null || return 0
+  helper_installed=1
+}
+
+helper_installed=0
+install_helper
+
+helper_note() {
+  [ "$helper_installed" = 1 ] || return 0
+  echo ""
+  echo "Also installed: $prefix/unflab -- so you don't have to find that"
+  echo "curl line again:"
+  echo ""
+  echo "    unflab <utility>              install another"
+  echo "    unflab --uninstall <utility>  remove one"
+  echo "    unflab --list                 see what there is"
+  echo ""
+  echo "It's a wrapper around the same one-liner, not a package manager:"
+  echo "no database, no state, nothing running in the background. Delete"
+  echo "it if you'd rather not have it."
+}
+
+# Say what actually happened: "installed jq" after an --uninstall run
+# would be worse than saying nothing.
+case " $flags " in
+  *" --purge "*)     verb="purged" ;;
+  *" --uninstall "*) verb="removed" ;;
+  *)                 verb="installed" ;;
+esac
+
 # `curl | sh` output scrolls past, so end with the bit worth reading.
 if [ -n "$ok" ] && [ -z "$failed" ]; then
-  echo "unflab: installed$ok"
+  echo "unflab: $verb$ok"
+  helper_note
   exit 0
 fi
-[ -n "$ok" ]     && echo "unflab: installed$ok"
+[ -n "$ok" ]     && echo "unflab: $verb$ok"
 [ -n "$failed" ] && echo "unflab: FAILED$failed" >&2
+[ -n "$ok" ]     && helper_note
 [ -n "$failed" ] && exit 1
 exit 0

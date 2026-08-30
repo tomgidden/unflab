@@ -173,6 +173,13 @@ sed -e "s|{{BASE_URL}}|$BASE_URL|g" \
 chmod +x "$EXTRA_DIR/get"
 echo "==> site-extra/get"
 
+# The `unflab` helper, served from the same place. `get` downloads this
+# and drops it in beside the binaries it installs.
+sed -e "s|{{BASE_URL}}|$BASE_URL|g" \
+    "$SCRIPT_DIR/templates/unflab.sh" > "$EXTRA_DIR/unflab"
+chmod +x "$EXTRA_DIR/unflab"
+echo "==> site-extra/unflab"
+
 # Landing page: the README, with the generated table swapped in for the
 # marker, so the site and the repo can't disagree.
 {

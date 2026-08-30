@@ -43,6 +43,7 @@ jobs:
         run: |
           set -euo pipefail
           cp site-extra/get site/get
+          cp site-extra/unflab site/unflab
           cp site-extra/index.txt site/index.txt
           # Served without an extension, so make sure it looks right.
           head -1 site/get

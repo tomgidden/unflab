@@ -80,6 +80,29 @@ That's `scripts/verify.sh`, and a failure fails the build. Homebrew may
 be used on the build machine to get a static library or a tool; the gate
 is what proves none of it survived into what you download.
 
+## The `unflab` command
+
+Installing anything also drops a small `unflab` script beside it, so you
+don't have to find that curl line again:
+
+```sh
+unflab jq mlr                 # install more
+unflab --uninstall ftp        # remove one
+unflab --purge doggo          # remove it and its config files
+unflab --list                 # see what there is
+```
+
+It is not a package manager and doesn't want to become one. It keeps no
+database, records no state, and updates nothing behind your back — it
+re-runs the same one-liner you started with, so you don't have to retype
+it. Delete it if its presence offends you; nothing depends on it, and
+
+```sh
+curl -fsSL https://tomgidden.github.io/unflab/get | sh -s -- <utility>
+```
+
+does everything it does.
+
 ## Installing
 
 Each package ships its own `install.sh`. The `curl | sh` line above runs
@@ -99,12 +122,23 @@ command you already have, and it won't remove a file it didn't install.
 ## Building it yourself
 
 ```sh
-make                  # list the utilities
+make                  # list the recipes
+make packages         # list every installable package
 make tree             # what you can do with one
 make tree.prereqs     # what building it needs
 make tree.build       # fetch, verify, build, gate
 make tree.install     # install what you just built
 make tree.package     # make a release archive
+```
+
+Targets take either a package name or a recipe name, which matters where
+one recipe builds several packages:
+
+```sh
+make ftp.install         # just ftp
+make inetutils.install   # everything that recipe builds (ftp, telnet)
+make coreutils.install   # all 105, if you really want them
+make timeout.install     # builds coreutils, installs only timeout
 ```
 
 Recipes live in `utils/<name>/`: `recipe.sh` pins the upstream source and
