@@ -180,12 +180,21 @@ done
 install_helper() {
   [ "$removing" = 1 ] && return 0
   [ -n "$ok" ] || return 0
-  [ -f "$prefix/unflab" ] && return 0
 
   helper="$TMP/unflab"
   $CURL -o "$helper" "$BASE_URL/unflab" 2>/dev/null || return 0
   [ -s "$helper" ] || return 0
   head -1 "$helper" | grep -q '^#!' || return 0
+
+  # Already got one? Say whether it matches, and leave it alone either
+  # way -- it might be one you've edited, and this script has no business
+  # deciding that for you.
+  if [ -f "$prefix/unflab" ]; then
+    have="$(shasum -a 256 "$prefix/unflab" 2>/dev/null | awk '{print $1}')"
+    want="$(shasum -a 256 "$helper" 2>/dev/null | awk '{print $1}')"
+    [ -n "$have" ] && [ "$have" != "$want" ] && helper_stale=1
+    return 0
+  fi
 
   mkdir -p "$prefix" 2>/dev/null || return 0
   cp "$helper" "$prefix/unflab" 2>/dev/null || return 0
@@ -194,9 +203,23 @@ install_helper() {
 }
 
 helper_installed=0
+helper_stale=0
 install_helper
 
 helper_note() {
+  if [ "$helper_stale" = 1 ]; then
+    echo ""
+    echo "Your $prefix/unflab is out of date. No big deal -- it still"
+    echo "works. To update it:"
+    echo ""
+    # chmod matters: curl -o writes a plain file, so without it the
+    # updated copy isn't executable and "unflab: permission denied" is a
+    # confusing way to find that out.
+    echo "    curl -fsSL -o $prefix/unflab $BASE_URL/unflab && chmod +x $prefix/unflab"
+    echo ""
+    return 0
+  fi
+
   [ "$helper_installed" = 1 ] || return 0
   echo ""
   echo "Also installed: $prefix/unflab -- so you don't have to find that"
