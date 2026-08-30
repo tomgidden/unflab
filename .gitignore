@@ -1,5 +1,5 @@
 # Build and packaging output
-/.build/
+/build/
 /out/
 /dist/
 /site/

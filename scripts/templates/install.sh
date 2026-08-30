@@ -1,4 +1,5 @@
 #!/bin/sh
+#
 # unflab package installer.
 #
 # Installs one already-unpacked unflab package, driven entirely by the
@@ -30,8 +31,7 @@ WANT_QUARANTINE_CLEAR=0
 ACTION=install
 PATH_MODE=ask       # ask | yes | no
 
-# ---------------------------------------------------------------- manifest
-
+# Manifest:
 # Field order: kind <TAB> mode <TAB> source <TAB> dest <TAB> plain
 # `-` means "not applicable". See scripts/templates/install.sh in the
 # unflab repo for the format's definition.
@@ -40,7 +40,8 @@ MANIFEST=$(cat <<'UNFLAB_MANIFEST_EOF'
 UNFLAB_MANIFEST_EOF
 )
 
-# ---------------------------------------------------------------- arguments
+
+# Arguments
 
 # A leading `--` may or may not reach us: `sh -s -- --prefix=x` passes it
 # through under sh/dash, while zsh consumes it. Tolerate either.
@@ -77,7 +78,7 @@ removed_count=0
 skipped_plain=""
 declined_stems=""
 
-# ------------------------------------------------------------------ helpers
+# Helpers
 
 # Resolve a manifest `kind` to its destination directory and to whether
 # --purge (rather than plain --uninstall) is what removes it.
@@ -87,7 +88,7 @@ dest_dir_for() {
     man1)       printf '%s' "$MANDIR" ;;
     doc)        printf '%s' "$DOCDIR" ;;
     config)     printf '%s' "$CONFDIR" ;;
-    completion) printf '%s' "$BASE/share/bash-completion/completions" ;;
+    completion) printf '%s' "$BASE/share/bash-completion/completions" ;; # XXX: zsh?
     *)          return 1 ;;
   esac
 }
@@ -107,7 +108,11 @@ is_config_kind() { [ "$1" = "config" ]; }
 #                       wrong deletes another package's binary.
 remove_own_file() {
   target="$1"
+
+  # If it exists, or is a symlink, it's ours to remove. -- XXX: is this right? Doesn't `-e` cover `-L`?
   [ -e "$target" ] || [ -L "$target" ] || return 0
+
+  # Remove it.
   rm -f "$target"
   echo "Removed $target"
   removed_count=$((removed_count + 1))
@@ -120,28 +125,42 @@ remove_own_link() {
     [ -e "$target" ] && echo "Kept $target (not ours: real file, not our symlink)"
     return 0
   }
+
+  # If it's a symlink, check it points at the expected thing.
   link=$(readlink "$target")
   case "$link" in
     "$expect"|*/"$expect") ;;
     *) echo "Kept $target (not ours: points at $link)"; return 0 ;;
   esac
+
+  # Remove it.
   rm -f "$target"
   echo "Removed $target"
   removed_count=$((removed_count + 1))
 }
 
-# ------------------------------------------------------- uninstall / purge
+# Uninstall / purge
+# -----------------
 
 if [ "$ACTION" = uninstall ] || [ "$ACTION" = purge ]; then
+
   # Fed by heredoc, NOT by a pipe: `echo "$MANIFEST" | while ...` runs the
   # loop in a subshell, so removed_count would be discarded and the
   # summary below would always report 0.
+
+  # Read the manifest, one line at a time.
   while IFS='	' read -r kind mode src dest plain; do
+
+    # Skip empty lines and comments.
     case "$kind" in ''|\#*) continue ;; esac
+
+    # Get the destination directory for this kind.
     dir=$(dest_dir_for "$kind") || continue
 
     # Config files survive --uninstall; only --purge takes them.
     if is_config_kind "$kind" && [ "$ACTION" != purge ]; then
+
+      # If it exists, it's kept. If not, we just don't mention it.
       [ -e "$dir/$dest" ] && echo "Kept $dir/$dest (use --purge to remove)"
       continue
     fi
@@ -150,6 +169,7 @@ if [ "$ACTION" = uninstall ] || [ "$ACTION" = purge ]; then
     # removing the thing it points to.
     [ "$plain" != "-" ] && [ -n "$plain" ] && remove_own_link "$dir/$plain" "$dest"
     [ "$dest" != "-" ] && [ -n "$dest" ] && remove_own_file "$dir/$dest"
+
   done <<UNFLAB_EOF
 $MANIFEST
 UNFLAB_EOF
@@ -157,9 +177,12 @@ UNFLAB_EOF
   # Only prune directories we own, and only when empty -- never $PREFIX
   # or $MANDIR, which belong to the user and hold other tools' files.
   for d in "$DOCDIR" "$CONFDIR"; do
+    # If it exists, try to remove it. If it has contents, it'll fail.
+    # If it doesn't exist, we don't mention it.
     [ -d "$d" ] && rmdir "$d" 2>/dev/null && echo "Removed empty $d"
   done
 
+  # If nothing was removed, say so.
   if [ "$removed_count" = 0 ]; then
     echo "Nothing to remove for $UTIL under $BASE."
   else
@@ -169,13 +192,23 @@ UNFLAB_EOF
   exit 0
 fi
 
-# ------------------------------------------------------------------ install
 
+# Install
+# -------
+
+# Read the manifest, one line at a time.
 while IFS='	' read -r kind mode src dest plain; do
+
+  # Skip empty lines and comments.
   case "$kind" in ''|\#*) continue ;; esac
+
+  # Get the destination directory for this kind.
   dir=$(dest_dir_for "$kind") || { echo "install.sh: unknown kind '$kind'" >&2; exit 1; }
+
+  # If the dest isn't set (or is -), skip it.
   [ "$dest" = "-" ] || [ -z "$dest" ] && continue
 
+  # If the src isn't there, fail
   if [ ! -f "$SCRIPT_DIR/$src" ]; then
     echo "install.sh: missing from package: $src" >&2
     exit 1
@@ -187,6 +220,7 @@ while IFS='	' read -r kind mode src dest plain; do
     continue
   fi
 
+  # Install the file
   install -d -m 755 "$dir"
   install -m "$mode" "$SCRIPT_DIR/$src" "$dir/$dest"
   echo "Installed $dir/$dest"
@@ -196,12 +230,26 @@ while IFS='	' read -r kind mode src dest plain; do
   # build time: claim the plain name only if nothing else answers to it.
   # `command -v` sees the real PATH, which is the only correct authority
   # on whether a name is already taken here.
+  #
   if [ "$WANT_PLAIN" = 1 ] && [ "$plain" != "-" ] && [ -n "$plain" ]; then
+
+    # If it's a binary, check it's not already installed.
     if [ "$kind" = bin ]; then
-      if command -v "$plain" >/dev/null 2>&1; then
-        existing=$(command -v "$plain")
-        # Our own earlier install doesn't count as a conflict.
+
+      # If the plain command exists...
+      #
+      # `|| existing=""` is load-bearing: command -v exits non-zero when
+      # the name is free, and under `set -e` a bare assignment from it
+      # kills the script mid-install -- silently, with status 0. That is
+      # exactly the common case here (a free name is why we'd claim it),
+      # so without this, installing timeout stops after gtimeout and
+      # never creates the plain symlink.
+      existing=$(command -v "$plain") || existing=""
+      if [ -n "$existing" ]; then
+
+        # If installed to the same location, it's probably one of our earlier installs
         if [ "$existing" != "$dir/$plain" ]; then
+
           skipped_plain="$skipped_plain $plain"
           # Remember the *stem* so this binary's man page (and anything
           # else named after it) follows the same decision below.
@@ -209,6 +257,7 @@ while IFS='	' read -r kind mode src dest plain; do
           continue
         fi
       fi
+
     else
       # Non-binary kinds follow whatever the binary decided. `man demo`
       # must work exactly when a plain `demo` command exists to be asked
@@ -220,6 +269,7 @@ while IFS='	' read -r kind mode src dest plain; do
           continue ;;
       esac
     fi
+
     # Relative target: the link sits beside its destination, so it keeps
     # resolving if the prefix is later moved, renamed, or reached by
     # another path (a symlinked home, a relocated tree).
@@ -230,31 +280,48 @@ done <<UNFLAB_EOF
 $MANIFEST
 UNFLAB_EOF
 
-# --------------------------------------------------------------- quarantine
+
+# Quarantine
+# ----------
 
 # Binaries here aren't signed with an Apple Developer ID or notarized, so
 # if this package arrived via a browser (or anything else LaunchServices
-# knows about) Gatekeeper will refuse to run it. `install` copies extended
-# attributes along with the file, so the flag follows the binary to its
-# destination -- which is why this is checked here, after the copy, and
-# reported against the path you'll actually invoke.
+# knows about) macOS will refuse to run it.
+#
+# `install` copies extended attributes along with the file, so the flag
+# follows the binary to its destination -- which is why this is checked
+# here, after the copy, and reported against the path you'll actually invoke.
 #
 # Downloads made by curl are NOT quarantined, so the `curl | sh` install
-# path never hits this. It's the manual-download route that does.
+# path shouldn't trigger this. It's the manual-download route that does.
 #
-# We don't clear it silently: that's a trust decision for you, not for a
-# script to make on your behalf.
+# We don't clear it silently; it's not our place to do so without permission.
+
+# If we have xattr (we damn well ought to), check the quarantine flag.
 if command -v xattr >/dev/null 2>&1; then
   quarantined=""
+
+  # Read the manifest, one line at a time.
   while IFS='	' read -r kind mode src dest plain; do
+
+    # Skip empty lines and comments.
     case "$kind" in ''|\#*) continue ;; esac
-    [ "$kind" = bin ] || continue
-    [ "$dest" = "-" ] && continue
+
+    [ "$kind" = bin ] || continue   # Only quarantine binaries
+    [ "$dest" = "-" ] && continue   # Skip if no destination
+
+    # If the binary is quarantined, note it.
     if xattr -p com.apple.quarantine "$PREFIX/$dest" >/dev/null 2>&1; then
+
+      # If we're supposed to clear it, do so.
       if [ "$WANT_QUARANTINE_CLEAR" = 1 ]; then
+
+        # Clear it.
         xattr -d com.apple.quarantine "$PREFIX/$dest" 2>/dev/null || true
         echo "Cleared com.apple.quarantine from $PREFIX/$dest"
+
       else
+        # Otherwise, note it.
         quarantined="$quarantined $dest"
       fi
     fi
@@ -262,6 +329,7 @@ if command -v xattr >/dev/null 2>&1; then
 $MANIFEST
 UNFLAB_EOF
 
+  # If we found any, tell the user.
   if [ -n "$quarantined" ]; then
     echo ""
     echo "Note: macOS has quarantined the installed binary, and Gatekeeper"
@@ -272,17 +340,24 @@ UNFLAB_EOF
   fi
 fi
 
-# --------------------------------------------------------------------- PATH
+
+# PATH management
+# ---------------
 
 # Only PATH needs managing: macOS's `man` derives its own search path from
 # PATH, finding <prefix>/../share/man automatically, so a working PATH
 # gets the man pages for free and MANPATH never needs touching.
+# This is somehting I never realised about macOS before...
+
+# If the PATH contains the prefix, it's good.
 case ":$PATH:" in
-  *":$PREFIX:"*) PATH_OK=1 ;;
-  *)             PATH_OK=0 ;;
+  *":$PREFIX:"*) PATH_ALREADY=1 ;;
+  *)             PATH_ALREADY=0 ;;
 esac
 
-if [ "$PATH_OK" = 0 ] && [ "$installed_count" -gt 0 ]; then
+# If PATH doesn't include our prefix, and we installed something, offer to fix it.
+if [ "$PATH_ALREADY" = 0 ] && [ "$installed_count" -gt 0 ]; then
+
   # Pick the rc file for the user's login shell, not for whatever shell
   # happens to be running this script.
   case "${SHELL:-}" in
@@ -291,6 +366,8 @@ if [ "$PATH_OK" = 0 ] && [ "$installed_count" -gt 0 ]; then
     */fish) RC="$HOME/.config/fish/config.fish" ;;
     *)      RC="$HOME/.profile" ;;
   esac
+
+  # Prepare the line that may (or may not) be added.
   case "$RC" in
     */config.fish) LINE="fish_add_path $PREFIX" ;;
     *)             LINE="export PATH=\"$PREFIX:\$PATH\"" ;;
@@ -299,40 +376,55 @@ if [ "$PATH_OK" = 0 ] && [ "$installed_count" -gt 0 ]; then
   echo ""
   echo "$PREFIX is not on your PATH, so '$UTIL' won't be found by name yet."
 
+  # If we're in 'ask' mode, then see if we can get an interactive terminal.
+  #
   # Interactivity is decided by *opening* /dev/tty, not by testing it.
   # Piped to `sh`, stdin is the script, so [ -t 0 ] is always false; and
   # [ -r /dev/tty ] passes even with no controlling terminal, where the
   # write then fails. Opening it read-write fails cleanly in both cases.
-  # Probed in a subshell first because some shells treat a failed
-  # redirection on `exec` as fatal to the whole script.
   TTY_OK=0
   if [ "$PATH_MODE" = ask ]; then
+    # Probed in a subshell first because some shells treat a failed
+    # redirection on `exec` as fatal to the whole script.
     if (exec 3<>/dev/tty) 2>/dev/null; then
+      # Honestly, this does reek somewhat of burning sulfur and
+      # sacrificial offerings, but apparently it works.
       exec 3<>/dev/tty
       TTY_OK=1
     fi
   fi
 
+  # Ask the user if they want to add the line to the rc file.
   DO_PATH=0
+
   if [ "$PATH_MODE" = yes ]; then
+    # The user's already said --path, so we're good.
     DO_PATH=1
+
   elif [ "$PATH_MODE" = ask ] && [ "$TTY_OK" = 1 ]; then
+    # We're in 'ask' mode and managed to get an interactive terminal.
+    # So, let's ask the user.
     echo "" >&3
     echo "  Add this line to $RC?" >&3
     echo "      $LINE" >&3
     printf '  [y/N] ' >&3
     IFS= read -r reply <&3 || reply=""
+
+    # If they said yes, we're good.
     case "$reply" in y|Y|yes|YES) DO_PATH=1 ;; esac
   fi
 
+  # If they decided to add the line, do so.
   if [ "$DO_PATH" = 1 ]; then
+
     # A marked block, so it's obvious who added this and easy to remove.
     {
       echo ""
-      echo "# added by unflab ($UTIL)"
+      echo "# added by Unflab, initially for $UTIL - https://unflab.app"
       echo "$LINE"
     } >> "$RC"
     echo "Added to $RC. Run:  . $RC   (or open a new terminal)"
+
   else
     echo ""
     echo "  To fix, add this to $RC:"
@@ -343,7 +435,8 @@ if [ "$PATH_OK" = 0 ] && [ "$installed_count" -gt 0 ]; then
   fi
 fi
 
-# ------------------------------------------------------------------ summary
+# Summary
+# -------
 
 echo ""
 if [ -n "$skipped_plain" ]; then
@@ -353,4 +446,5 @@ if [ -n "$skipped_plain" ]; then
   done
   echo ""
 fi
+
 echo "$UTIL $VERSION installed ($installed_count file(s)) under $BASE."

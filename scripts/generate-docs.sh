@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#
 # Generates the docs site's content from the recipes, so it can't drift
 # from what the project actually builds:
 #
@@ -12,19 +13,34 @@
 #
 # Usage: scripts/generate-docs.sh
 
+# This script is run by CI, so it's a bit more strict
 set -euo pipefail
 
+# The directory this script lives in.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# The parent of this directory: the root of the project.
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# The directory where the docs site's content lives.
 DOCS_DIR="$ROOT_DIR/docs"
+
+# The directory where the site-extra files live.
 EXTRA_DIR="$ROOT_DIR/site-extra"
 
+# The repo to use for the bootstrap.
 REPO="${UNFLAB_REPO:-tomgidden/unflab}"
-BASE_URL="${UNFLAB_BASE_URL:-https://tomgidden.github.io/unflab}"
+
+# The URL to use for the bootstrap.
+BASE_URL="${UNFLAB_BASE_URL:-https://unflab.app}"
+
+# The URL to use for the bootstrap's release assets.
 RELEASE_URL="${UNFLAB_RELEASE_URL:-https://github.com/$REPO/releases/latest/download}"
 
+# Create the docs and site-extra directories.
 mkdir -p "$DOCS_DIR" "$EXTRA_DIR"
 
+# A helper to extract a field from a file.
 field() { sed -n "s/^$1=//p" "$2" | tr -d '"' | head -1; }
 
 # Frontmatter values are YAML. A description containing a colon, a quote
@@ -188,7 +204,7 @@ echo "==> site-extra/unflab"
   echo "title: unflab"
   echo "---"
   echo ""
-  sed -e "s|https://tomgidden.github.io/unflab|$BASE_URL|g" "$ROOT_DIR/README.md"
+  sed -e "s|https://unflab.app|$BASE_URL|g" "$ROOT_DIR/README.md"
   echo ""
   echo "## Available now"
   echo ""

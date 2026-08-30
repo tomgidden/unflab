@@ -40,7 +40,7 @@ PREFIX ?= $(HOME)/.local/bin
 # Only genuine phonies here: naming the pattern-rule targets (%.build
 # etc) in .PHONY stops those rules matching at all, and make then reports
 # "nothing to be done".
-.PHONY: list packages all clean $(UTILS)
+.PHONY: list packages all clean $(UTILS) $(PACKAGES)
 
 # `make list` lists every utility currently available to build.
 list:
@@ -69,6 +69,28 @@ list:
 	@echo ""
 
 # `make ‹utility›` explains rather than guessing which action was meant.
+# Bare `make ‹name›` explains rather than guessing which action was
+# meant -- for a package name as much as a recipe name, since ftp.install
+# works and `make ftp` should too.
+PACKAGES := $(shell $(ROOT)/scripts/resolve.sh list-packages 2>/dev/null)
+
+$(filter-out $(UTILS),$(PACKAGES)):
+	@p=$@; \
+	r=$$($(ROOT)/scripts/resolve.sh recipe $$p); \
+	echo ""; \
+	echo "$$p -- from the $$r recipe"; \
+	echo ""; \
+	grep -E '^UNFLAB_(VERSION|LICENSE|HOMEPAGE)=' $(ROOT)/utils/$$r/recipe.sh \
+	  | sed -e 's/^UNFLAB_/  /' -e 's/=/: /'; \
+	echo ""; \
+	echo "  make $$p.build       build the $$r recipe"; \
+	echo "  make $$p.install     install just $$p to $(PREFIX)"; \
+	echo "  make $$p.package     build its release archive"; \
+	echo "  make $$p.uninstall   remove it"; \
+	echo ""; \
+	echo "  'make $$r.install' installs everything that recipe builds."; \
+	echo ""
+
 $(UTILS):
 	@u=$@; \
 	echo "$$u -- $$(sed -n '1s/^#[^-]*-- *//p' $(ROOT)/utils/$$u/recipe.sh)"; \
