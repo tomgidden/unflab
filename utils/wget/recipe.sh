@@ -17,60 +17,17 @@ UNFLAB_TOOLCHAIN="c autotools make perl"
 UNFLAB_CLASS=1
 UNFLAB_PACKAGES=wget
 
-# Built and linked statically, never shipped as a library. macOS provides
-# no OpenSSL to link against -- the SDK has only libboringssl, which is
-# Apple-private -- and wget supports only GnuTLS or OpenSSL, with no
-# Secure Transport backend. So a TLS-capable wget has to bring its own.
-UNFLAB_OPENSSL_VERSION=3.5.4
-UNFLAB_OPENSSL_SOURCE="https://github.com/openssl/openssl/releases/download/openssl-3.5.4/openssl-3.5.4.tar.gz"
-UNFLAB_OPENSSL_SHA256=967311f84955316969bdb1d8d4b983718ef42338639c621ec4c34fddef355e99
+# OpenSSL is built and linked statically by the shared helper, never
+# shipped as a library. macOS provides no OpenSSL to link against -- the
+# SDK has only libboringssl, which is Apple-private -- and wget supports
+# only GnuTLS or OpenSSL, with no Secure Transport backend. So a
+# TLS-capable wget has to bring its own.
+# shellcheck source=../../scripts/lib/openssl.sh
+source "$ROOT_DIR/scripts/lib/openssl.sh"
 
 unflab_build() {
-  local deps="$BUILD_DIR/../deps"
-  local ossl_src="$BUILD_DIR/../openssl-$UNFLAB_OPENSSL_VERSION"
-  mkdir -p "$deps"
-
-  # --- static OpenSSL -------------------------------------------------
-  if [ ! -f "$deps/lib/libssl.a" ]; then
-    echo "==> Building OpenSSL $UNFLAB_OPENSSL_VERSION (static)"
-    local tarball="$BUILD_DIR/../openssl.tar.gz"
-    curl -fsSL --connect-timeout 15 --max-time 300 --retry 2 \
-      -o "$tarball" "$UNFLAB_OPENSSL_SOURCE"
-
-    local actual
-    actual="$(shasum -a 256 "$tarball" | awk '{print $1}')"
-    if [ "$actual" != "$UNFLAB_OPENSSL_SHA256" ]; then
-      echo "wget recipe: OpenSSL checksum mismatch" >&2
-      echo "  expected: $UNFLAB_OPENSSL_SHA256" >&2
-      echo "  actual:   $actual" >&2
-      exit 1
-    fi
-
-    rm -rf "$ossl_src"
-    tar xzf "$tarball" -C "$BUILD_DIR/.."
-
-    local target
-    case "$(uname -m)" in
-      arm64)  target=darwin64-arm64-cc ;;
-      x86_64) target=darwin64-x86_64-cc ;;
-      *) echo "wget recipe: unsupported arch $(uname -m)" >&2; exit 1 ;;
-    esac
-
-    # no-shared is the point: only .a files, so nothing can end up as a
-    # runtime dependency. no-apps/no-docs/no-tests cut the build from
-    # minutes to seconds -- we need the libraries, not the toolkit.
-    #
-    # --openssldir=/private/etc/ssl matters more than it looks: it's
-    # compiled into the binary as where to find CA certificates, and
-    # macOS ships a real bundle at /private/etc/ssl/cert.pem. Point it
-    # anywhere else and HTTPS fails on the user's machine with a
-    # certificate error.
-    ( cd "$ossl_src" && \
-      ./Configure "$target" no-shared no-tests no-docs no-apps \
-        --prefix="$deps" --openssldir=/private/etc/ssl >/dev/null && \
-      make -j"$(sysctl -n hw.ncpu)" >/dev/null && \
-      make install_sw >/dev/null )
-  fi
+  unflab_static_openssl
+  local deps="$UNFLAB_SSL_PREFIX"
 
   # --- wget -----------------------------------------------------------
   # --without-libpsl drops libpsl (public-suffix cookie checks);

@@ -1,0 +1,6 @@
+bin	755	bin/socat	socat	-
+bin	755	bin/filan	filan	-
+bin	755	bin/procan	procan	-
+man1	644	share/man/man1/socat.1	socat.1	-
+doc	644	README.md	README.md	-
+doc	644	LICENSE	LICENSE	-
