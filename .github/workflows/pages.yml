@@ -1,8 +1,15 @@
 name: Deploy docs to GitHub Pages
 
 # Rebuilds the site on pushes to main and whenever a release is
-# published, so the utility table and the bootstrap's index.txt track the
-# latest release rather than waiting for an unrelated commit.
+# published.
+#
+# Prose comes from the working tree, so a docs fix goes live on push.
+# The download-facing data -- index.txt and the per-package versions --
+# is taken from the latest release's assets instead, because Pages
+# deploys on every push while archives only publish on a tag. Without
+# that split the site advertises packages added since the last tag and
+# `get` 404s on them, which is exactly what happened to webi, btop,
+# shfmt and socat.
 
 on:
   push:
@@ -32,8 +39,33 @@ jobs:
       - name: Install PyYAML (frontmatter validation)
         run: python3 -m pip install --quiet pyyaml || true
 
-      - name: Generate docs, bootstrap and index from the recipes
-        run: scripts/generate-docs.py
+      # The asset list of the latest release. A package absent from it
+      # is left out of index.txt entirely, so the site can only ever
+      # advertise something `get` can actually fetch.
+      - name: Fetch the latest release's asset list
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view --repo "$GITHUB_REPOSITORY" \
+               --json assets -q '.assets[].name' > release-assets.txt; then
+            echo "latest release: $(wc -l < release-assets.txt) assets"
+          else
+            # No release yet (a fresh fork, or before the first tag).
+            # Fall back to describing the working tree rather than
+            # failing the deploy.
+            echo "no release found -- generating from the working tree"
+            rm -f release-assets.txt
+          fi
+
+      - name: Generate docs, bootstrap and index
+        run: |
+          set -euo pipefail
+          if [ -f release-assets.txt ]; then
+            UNFLAB_RELEASE_MANIFEST=release-assets.txt scripts/generate-docs.py
+          else
+            scripts/generate-docs.py
+          fi
 
       - uses: actions/setup-node@v4
         with:

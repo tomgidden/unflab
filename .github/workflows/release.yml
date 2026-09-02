@@ -66,15 +66,86 @@ jobs:
         with:
           cmakeVersion: "3.31.6"
 
-      - run: scripts/build.sh ${{ matrix.recipe }}
-      - run: scripts/package.sh ${{ matrix.target.arch }}
+      # Skip the compile when nothing that determines the artefact has
+      # changed. The key covers the recipe directory, the shared build
+      # and packaging scripts, any helper the recipe sources, and the
+      # runner image; build-key.sh documents why each matters.
+      #
+      # A release rebuilds every recipe, so shipping four new packages
+      # was costing a full coreutils build (6m) for no change. If the
+      # previous release published the same key, its archives are still
+      # correct and get copied forward instead.
+      - id: key
+        run: |
+          set -euo pipefail
+          key="$(scripts/build-key.sh '${{ matrix.recipe }}' \
+                   '${{ matrix.target.runner }}')"
+          echo "key=$key" >> "$GITHUB_OUTPUT"
+          echo "${{ matrix.recipe }} key: $key"
+
+      - id: cached
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo "hit=false" >> "$GITHUB_OUTPUT"
+
+          # BUILD-KEYS.txt from the previous release maps recipe -> key.
+          prev=$(gh release list --repo "$GITHUB_REPOSITORY" \
+                   --limit 1 --json tagName -q '.[0].tagName' || true)
+          [ -n "$prev" ] || { echo "no previous release"; exit 0; }
+
+          gh release download "$prev" --repo "$GITHUB_REPOSITORY" \
+            --pattern BUILD-KEYS.txt --dir prev 2>/dev/null || {
+              echo "$prev has no BUILD-KEYS.txt -- building"; exit 0; }
+
+          want='${{ matrix.recipe }} ${{ steps.key.outputs.key }}'
+          grep -qxF "$want" prev/BUILD-KEYS.txt || {
+            echo "key changed since $prev -- building"; exit 0; }
+
+          # The key matches, so reuse that release's archives for this
+          # recipe. --pattern is a glob over asset names; a recipe's
+          # packages are all named unflab-<pkg>-... so they have to be
+          # selected via the index rather than one glob.
+          mkdir -p dist
+          gh release download "$prev" --repo "$GITHUB_REPOSITORY" \
+            --pattern 'index.txt' --dir prev
+          n=0
+          while IFS=$'\t' read -r name recipe version; do
+            [ "$recipe" = '${{ matrix.recipe }}' ] || continue
+            asset="unflab-$name-$version-${{ matrix.target.arch }}.tar.gz"
+            gh release download "$prev" --repo "$GITHUB_REPOSITORY" \
+              --pattern "$asset" --dir dist || {
+                echo "$asset missing from $prev -- building instead"
+                rm -rf dist; exit 0; }
+            n=$((n + 1))
+          done < prev/index.txt
+
+          [ "$n" -gt 0 ] || { echo "nothing reused -- building"; exit 0; }
+          echo "hit=true" >> "$GITHUB_OUTPUT"
+          echo "reused $n archive(s) from $prev"
+
+      - if: steps.cached.outputs.hit != 'true'
+        run: scripts/build.sh ${{ matrix.recipe }}
+      - if: steps.cached.outputs.hit != 'true'
+        run: scripts/package.sh ${{ matrix.target.arch }}
+
+      # The litmus test runs either way: a reused archive still has to
+      # install and run on this runner. It is the acceptance test for
+      # what ships, not for what was compiled.
       - run: scripts/litmus-test.sh ${{ matrix.target.arch }}
+
+      - name: Record the build key
+        run: echo '${{ matrix.recipe }} ${{ steps.key.outputs.key }}' > "dist/.key-${{ matrix.recipe }}"
 
       - uses: actions/upload-artifact@v4
         with:
           name: dist-${{ matrix.recipe }}-${{ matrix.target.arch }}
-          path: dist/*.tar.gz
+          path: |
+            dist/*.tar.gz
+            dist/.key-*
           if-no-files-found: error
+          include-hidden-files: true
 
   release:
     needs: build
@@ -86,6 +157,16 @@ jobs:
           pattern: dist-*
           merge-multiple: true
           path: dist
+
+      # One line per recipe: "<recipe> <key>". The next release reads
+      # this to decide what it can copy forward instead of rebuilding.
+      - name: Collect build keys
+        run: |
+          set -euo pipefail
+          cat dist/.key-* > dist/BUILD-KEYS.txt
+          rm -f dist/.key-*
+          sort -o dist/BUILD-KEYS.txt dist/BUILD-KEYS.txt
+          echo "BUILD-KEYS.txt: $(wc -l < dist/BUILD-KEYS.txt) recipes"
 
       # Checksums are generated here rather than per-recipe: each build
       # job only sees its own packages, so a per-job SHA256SUMS file
@@ -135,4 +216,5 @@ jobs:
             dist/*.tar.gz
             dist/SHA256SUMS-*.txt
             dist/index.txt
+            dist/BUILD-KEYS.txt
           generate_release_notes: true

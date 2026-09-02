@@ -173,6 +173,45 @@ for entry in sorted(os.listdir(os.path.join(ROOT_DIR, "utils"))):
             class_=field("UNFLAB_CLASS", recipe),
         ))
 
+# Reconcile against a release
+# ---------------------------
+
+# By default the site describes the working tree. That is right for a
+# local `make docs`, but wrong for the published site: Pages deploys on
+# every push while archives only publish on a tag, so a package added
+# between tags would be advertised with no download behind it. That gap
+# is what made `get webi` return a 404.
+#
+# With UNFLAB_RELEASE_MANIFEST pointing at a file of asset names, the
+# download-facing data is taken from the release instead: a package is
+# listed only if an archive for it exists, at the version that archive
+# carries. Prose still comes from the working tree, so docs edits go
+# live on push -- only what `get` acts on is pinned to the release.
+manifest = os.environ.get("UNFLAB_RELEASE_MANIFEST")
+if manifest:
+    # Asset names are unflab-<name>-<version>-<arch>.tar.gz. The name
+    # may contain dashes (sha256sum) and so may the arch triple, so
+    # anchor on the known suffix and take the last dash-separated field
+    # before it as the version.
+    shipped = {}
+    with open(manifest, encoding="utf-8") as fh:
+        for line in fh:
+            m = re.match(r"^unflab-(.+)-([^-]+)-[^-]+-apple-darwin\.tar\.gz$",
+                         line.strip())
+            if m:
+                shipped[m.group(1)] = m.group(2)
+
+    if not shipped:
+        sys.exit(f"generate-docs: no assets parsed from {manifest}")
+
+    missing = sorted({p.name for p in packages} - set(shipped))
+    packages = [p._replace(version=shipped[p.name])
+                for p in packages if p.name in shipped]
+
+    print(f"==> release manifest: {len(packages)} package(s) shipped"
+          + (f", {len(missing)} not yet released: {' '.join(missing)}"
+             if missing else ""))
+
 os.makedirs(DOCS_DIR, exist_ok=True)
 os.makedirs(EXTRA_DIR, exist_ok=True)
 
@@ -219,6 +258,16 @@ for p in packages:
         out.append(f"| Upstream | [{p.homepage}]({p.homepage}) |")
     out += [
         f"| Source | [`{os.path.basename(p.source)}`]({p.source}) |",
+    ]
+
+    # A direct link to the built archive, but only when the versions
+    # came from a real release -- linking one built from the working
+    # tree would promise a download that doesn't exist yet.
+    if manifest:
+        asset = f"unflab-{p.name}-{p.version}-arm64-apple-darwin.tar.gz"
+        out += [f"| Download | [`{asset}`]({RELEASE_URL}/{asset}) |"]
+
+    out += [
         "",
         "Built from that exact tarball, with its SHA-256 pinned in the",
         "recipe. The binary links against nothing outside `/usr/lib`",
