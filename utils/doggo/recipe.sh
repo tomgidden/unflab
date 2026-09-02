@@ -12,6 +12,7 @@ UNFLAB_VERSION=1.3.0
 UNFLAB_HOMEPAGE=https://doggo.mrkaran.dev/
 UNFLAB_LICENSE=GPL-3.0-or-later
 UNFLAB_SOURCE=https://github.com/mr-karan/doggo/archive/refs/tags/v1.3.0.tar.gz
+UNFLAB_CHECK=github:mr-karan/doggo
 UNFLAB_SHA256=877f047fe81185d4fbeec870d54233f7ebf7c707a41cb98d023c34e089f9a0c0
 UNFLAB_TOOLCHAIN="go"
 UNFLAB_CLASS=3

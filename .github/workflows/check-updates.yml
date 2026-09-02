@@ -1,0 +1,107 @@
+name: Check upstream versions
+
+# Nightly report of recipes whose upstream has released a newer version.
+#
+# It reports; it never bumps. A version change also means a new
+# UNFLAB_SHA256, and that pin is the only integrity check this project
+# has across upstreams that mostly don't sign their releases -- an
+# automated PR rewriting it would be a robot editing the very thing
+# that makes a tampered tarball detectable. So this opens an issue and
+# a human decides.
+
+on:
+  schedule:
+    # 07:15 UTC. Off the hour because the top of the hour is when
+    # everyone else's cron fires and GitHub queues them.
+    - cron: "15 7 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # GH_TOKEN raises the GitHub API rate limit from 60/hour
+      # (unauthenticated, shared across every runner on the host) to
+      # 1000/hour for this repo -- more than enough for one recipe per
+      # request, and the difference between a reliable check and a
+      # nightly false alarm.
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+          scripts/check-updates.sh | tee report.txt
+          echo "status=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: Summary
+        run: |
+          {
+            echo '### Upstream versions'
+            echo
+            echo '```'
+            cat report.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # One open issue, updated in place. A new issue every night for
+      # the same four outdated recipes would train everyone to ignore
+      # it; the report is a standing status, not an event.
+      - name: Open or update the tracking issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          updates=$(grep -c 'UPDATE$' report.txt || true)
+          failed=$(grep -c 'CHECK FAILED$' report.txt || true)
+
+          # Created here rather than assumed: gh issue create fails
+          # outright on a label that doesn't exist, so a fresh fork
+          # would break on its first run.
+          gh label create upstream-versions --repo "$GITHUB_REPOSITORY" \
+            --color 0E8A16 --description "Nightly upstream version check" \
+            2>/dev/null || true
+
+          existing=$(gh issue list --repo "$GITHUB_REPOSITORY" \
+            --state open --label upstream-versions \
+            --json number -q '.[0].number' || true)
+
+          if [ "$updates" -eq 0 ] && [ "$failed" -eq 0 ]; then
+            # Nothing to say. Close a stale issue rather than leaving a
+            # resolved one open.
+            if [ -n "$existing" ]; then
+              gh issue close "$existing" --repo "$GITHUB_REPOSITORY" \
+                --comment "Everything is on the latest upstream version."
+            fi
+            echo "all recipes current"
+            exit 0
+          fi
+
+          body=$(printf '%s\n\n```\n%s\n```\n\n%s\n' \
+            "Nightly upstream check for $(date -u +%Y-%m-%d)." \
+            "$(cat report.txt)" \
+            "Bumping means updating UNFLAB_VERSION and UNFLAB_SHA256 together, then rebuilding. Deliberate by design -- see scripts/check-updates.sh.")
+
+          if [ -n "$existing" ]; then
+            gh issue edit "$existing" --repo "$GITHUB_REPOSITORY" --body "$body"
+            echo "updated issue #$existing"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" \
+              --title "Upstream updates available" \
+              --label upstream-versions \
+              --body "$body"
+          fi
+
+      # A failed check means the checker is broken -- an upstream moved
+      # its download page, say -- which is a real defect even though no
+      # build is affected. Fail after the issue is written, not before.
+      - if: steps.check.outputs.status != '0'
+        run: |
+          echo "one or more version checks failed" >&2
+          exit 1

@@ -24,6 +24,7 @@ UNFLAB_VERSION=1.3.2
 UNFLAB_HOMEPAGE=https://webinstall.dev
 UNFLAB_LICENSE=MPL-2.0
 UNFLAB_SOURCE=https://github.com/webinstall/webi-installers/archive/refs/tags/v1.3.2.tar.gz
+UNFLAB_CHECK=github-tags:webinstall/webi-installers
 UNFLAB_SHA256=c7d5c98e6c77b8edd31d6c2efd1a451f187621eb64b3d525994eca0220875ce9
 UNFLAB_TOOLCHAIN=""
 UNFLAB_CLASS=3

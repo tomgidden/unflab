@@ -10,6 +10,7 @@ UNFLAB_VERSION=1.8.1
 UNFLAB_HOMEPAGE=https://jqlang.github.io/jq/
 UNFLAB_LICENSE=MIT
 UNFLAB_SOURCE=https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-1.8.1.tar.gz
+UNFLAB_CHECK=github:jqlang/jq
 UNFLAB_SHA256=2be64e7129cecb11d5906290eba10af694fb9e3e7f9fc208a311dc33ca837eb0
 UNFLAB_TOOLCHAIN="c autotools make"
 UNFLAB_CLASS=3

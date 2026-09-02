@@ -40,7 +40,7 @@ PREFIX ?= $(HOME)/.local/bin
 # Only genuine phonies here: naming the pattern-rule targets (%.build
 # etc) in .PHONY stops those rules matching at all, and make then reports
 # "nothing to be done".
-.PHONY: list packages all docs clean $(UTILS) $(PACKAGES)
+.PHONY: list packages all docs check-updates clean $(UTILS) $(PACKAGES)
 
 # `make list` lists every utility currently available to build.
 list:
@@ -67,6 +67,7 @@ list:
 	@echo "      make all             to build everything"
 	@echo "      make packages        to list every installable package"
 	@echo "      make docs            to regenerate the docs site's content"
+	@echo "      make check-updates   to see which upstreams have moved on"
 	@echo ""
 
 # `make ‹utility›` explains rather than guessing which action was meant.
@@ -159,6 +160,11 @@ all:
 # the frontmatter it writes; it runs without it.
 docs:
 	@$(ROOT)/scripts/generate-docs.py
+
+# Which upstreams have released something newer. Reports only -- a bump
+# also means a new UNFLAB_SHA256, so it stays a deliberate act.
+check-updates:
+	@$(ROOT)/scripts/check-updates.sh
 
 clean:
 	@rm -rf $(ROOT)/build $(ROOT)/out $(ROOT)/dist
