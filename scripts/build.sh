@@ -90,6 +90,11 @@ for src in "${sources[@]}"; do
   # If we can fetch it, we're done.
   if curl "${CURL_OPTS[@]}" -o "$tarball" "$src"; then
     fetched=1
+    # Which mirror actually served it: the detached signature has to
+    # be fetched from beside the tarball we got, not from the URL we
+    # first tried. Falling back to a mirror and then verifying against
+    # ftp.gnu.org's signature would check the wrong pair of files.
+    fetched_from="$src"
     break
   fi
 
@@ -128,7 +133,7 @@ if [[ -n "${UNFLAB_SHA256:-}" ]]; then
     # shellcheck source=lib/attest.sh
     source "$SCRIPT_DIR/lib/attest.sh"
     unflab_attest "$tarball" "$UNFLAB_SHA256" \
-      "${UNFLAB_ATTEST:-}" "$UNFLAB_VERSION" "${UNFLAB_SIG_URL:-$UNFLAB_SOURCE.sig}"
+      "${UNFLAB_ATTEST:-}" "$UNFLAB_VERSION" "${UNFLAB_SIG_URL:-$fetched_from.sig}"
     rc=$?
     # 1 means the upstream's own evidence disagrees with our pin --
     # never a network problem, always a reason to stop. 2 means the
