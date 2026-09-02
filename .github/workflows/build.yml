@@ -82,7 +82,14 @@ jobs:
         with:
           cmakeVersion: "3.31.6"
 
+      # Attestation is checked on the runner, where gpg and the network
+      # are both available. Strict: evidence an upstream publishes must
+      # actually be fetchable, or the build fails rather than quietly
+      # downgrading to the pin alone.
       - name: Build
+        env:
+          UNFLAB_ATTEST_CHECK: "1"
+          UNFLAB_ATTEST_STRICT: "1"
         run: scripts/build.sh ${{ matrix.recipe }}
 
       - name: Package

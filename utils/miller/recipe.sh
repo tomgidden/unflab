@@ -12,6 +12,7 @@ UNFLAB_LICENSE=BSD-2-Clause
 UNFLAB_SOURCE=https://github.com/johnkerl/miller/archive/refs/tags/v6.15.0.tar.gz
 UNFLAB_CHECK=github:johnkerl/miller
 UNFLAB_SHA256=91f1cbb91db6b6f93f0b582b73fede6659e37a730d8f30f7bb5e0ce5c356f63d
+UNFLAB_ATTEST='none:upstream checksums cover release binaries, not the tag archive we build from'
 UNFLAB_TOOLCHAIN="go"
 UNFLAB_CLASS=3
 

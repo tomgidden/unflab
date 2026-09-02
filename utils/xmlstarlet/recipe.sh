@@ -13,6 +13,7 @@ UNFLAB_LICENSE=MIT
 UNFLAB_SOURCE=https://downloads.sourceforge.net/project/xmlstar/xmlstarlet/1.6.1/xmlstarlet-1.6.1.tar.gz
 UNFLAB_CHECK=html:https://sourceforge.net/projects/xmlstar/rss?path=/xmlstarlet:xmlstarlet
 UNFLAB_SHA256=15d838c4f3375332fd95554619179b69e4ec91418a3a5296e7c631b7ed19e7ca
+UNFLAB_ATTEST='none:SourceForge release publishes no checksum or signature'
 UNFLAB_TOOLCHAIN="c autotools make"
 UNFLAB_CLASS=3
 UNFLAB_PACKAGES=xmlstarlet

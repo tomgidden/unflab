@@ -126,6 +126,9 @@ jobs:
           echo "reused $n archive(s) from $prev"
 
       - if: steps.cached.outputs.hit != 'true'
+        env:
+          UNFLAB_ATTEST_CHECK: "1"
+          UNFLAB_ATTEST_STRICT: "1"
         run: scripts/build.sh ${{ matrix.recipe }}
       - if: steps.cached.outputs.hit != 'true'
         run: scripts/package.sh ${{ matrix.target.arch }}

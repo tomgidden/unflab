@@ -22,6 +22,7 @@ UNFLAB_LICENSE=GPL-3.0-or-later
 UNFLAB_SOURCE=https://ftp.gnu.org/gnu/inetutils/inetutils-2.8.tar.gz
 UNFLAB_CHECK=gnu:inetutils
 UNFLAB_SHA256=57b3cf4f77555992881e5ba2a09a63b05aa2c56342a60ed4305b5f45938390b5
+UNFLAB_ATTEST=gnupg:https://ftp.gnu.org/gnu/gnu-keyring.gpg
 UNFLAB_TOOLCHAIN="c autotools make"
 UNFLAB_CLASS=2
 UNFLAB_PACKAGES="ftp telnet"

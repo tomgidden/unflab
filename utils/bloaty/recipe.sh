@@ -15,6 +15,7 @@ UNFLAB_LICENSE=Apache-2.0
 UNFLAB_SOURCE=https://github.com/google/bloaty/releases/download/v1.1/bloaty-1.1.tar.bz2
 UNFLAB_CHECK=github:google/bloaty
 UNFLAB_SHA256=a308d8369d5812aba45982e55e7c3db2ea4780b7496a5455792fb3dcba9abd6f
+UNFLAB_ATTEST='none:upstream release publishes no checksum or signature'
 UNFLAB_TOOLCHAIN="c cmake make"
 UNFLAB_CLASS=1
 UNFLAB_PACKAGES=bloaty

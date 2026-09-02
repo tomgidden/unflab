@@ -12,6 +12,7 @@ UNFLAB_LICENSE=GPL-2.0-or-later
 UNFLAB_SOURCE=https://gitlab.com/OldManProgrammer/unix-tree/-/archive/2.3.2/unix-tree-2.3.2.tar.gz
 UNFLAB_CHECK=gitlab-tags:OldManProgrammer/unix-tree
 UNFLAB_SHA256=513a53cbc42ca1f4ea06af2bab1f5283524a3848266b1d162416f8033afc4985
+UNFLAB_ATTEST='none:GitLab auto-generated tag archive; upstream publishes no checksum'
 UNFLAB_TOOLCHAIN="c make"
 UNFLAB_CLASS=3
 UNFLAB_PACKAGES=tree

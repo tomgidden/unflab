@@ -14,6 +14,7 @@ UNFLAB_LICENSE=GPL-2.0-only
 UNFLAB_SOURCE=http://www.dest-unreach.org/socat/download/socat-1.8.1.3.tar.gz
 UNFLAB_CHECK=html:http://www.dest-unreach.org/socat/download/:socat
 UNFLAB_SHA256=06602ffd591e98c75b3dc1d66f0f19136cc666b0b2d95caad987d6ab2cb28097
+UNFLAB_ATTEST='none:plain-HTTP download with no published checksum or signature'
 UNFLAB_TOOLCHAIN="c autotools make"
 UNFLAB_CLASS=1
 UNFLAB_PACKAGES=socat

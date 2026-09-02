@@ -20,6 +20,7 @@ UNFLAB_LICENSE=BSD-3-Clause
 UNFLAB_SOURCE=https://github.com/mvdan/sh/archive/refs/tags/v3.14.0.tar.gz
 UNFLAB_CHECK=github:mvdan/sh
 UNFLAB_SHA256=f193c946e2882c4fa04935cd583f60e2cab60344209bd982a3a5933c4192aad8
+UNFLAB_ATTEST='none:GitHub auto-generated tag archive; upstream publishes no checksum for it'
 UNFLAB_TOOLCHAIN="go"
 UNFLAB_CLASS=3
 UNFLAB_PACKAGES=shfmt

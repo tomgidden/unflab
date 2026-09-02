@@ -12,6 +12,7 @@ UNFLAB_LICENSE=GPL-3.0-or-later
 UNFLAB_SOURCE=https://ftp.gnu.org/gnu/coreutils/coreutils-9.11.tar.xz
 UNFLAB_CHECK=gnu:coreutils
 UNFLAB_SHA256=394024eda0a5955217ceda9cd1201e65dc8fa3aa29c2951135a49521d57c3cc3
+UNFLAB_ATTEST=gnupg:https://ftp.gnu.org/gnu/gnu-keyring.gpg
 UNFLAB_TOOLCHAIN="c autotools make"
 UNFLAB_CLASS=2
 

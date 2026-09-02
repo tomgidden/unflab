@@ -24,6 +24,7 @@ UNFLAB_LICENSE=Apache-2.0
 UNFLAB_SOURCE=https://github.com/aristocratos/btop/archive/refs/tags/v1.4.7.tar.gz
 UNFLAB_CHECK=github:aristocratos/btop
 UNFLAB_SHA256=933de2e4d1b2211a638be463eb6e8616891bfba73aef5d38060bd8319baeefc6
+UNFLAB_ATTEST='none:GitHub auto-generated tag archive; upstream publishes no checksum for it'
 UNFLAB_TOOLCHAIN="c++ make"
 UNFLAB_CLASS=3
 UNFLAB_PACKAGES=btop

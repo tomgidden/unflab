@@ -14,6 +14,7 @@ UNFLAB_LICENSE=GPL-3.0-or-later
 UNFLAB_SOURCE=https://ftp.gnu.org/gnu/wget/wget-1.25.0.tar.gz
 UNFLAB_CHECK=gnu:wget
 UNFLAB_SHA256=766e48423e79359ea31e41db9e5c289675947a7fcf2efdcedb726ac9d0da3784
+UNFLAB_ATTEST=gnupg:https://ftp.gnu.org/gnu/gnu-keyring.gpg
 UNFLAB_TOOLCHAIN="c autotools make perl"
 UNFLAB_CLASS=1
 UNFLAB_PACKAGES=wget

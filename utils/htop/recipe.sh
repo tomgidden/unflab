@@ -11,6 +11,7 @@ UNFLAB_LICENSE=GPL-2.0-or-later
 UNFLAB_SOURCE=https://github.com/htop-dev/htop/releases/download/3.5.3/htop-3.5.3.tar.xz
 UNFLAB_CHECK=github:htop-dev/htop
 UNFLAB_SHA256=a8b164386494cb85bb255a415a3f5f80afe7a0c4491da5d113b3a0f951087e65
+UNFLAB_ATTEST='sha256:https://github.com/htop-dev/htop/releases/download/$V/htop-$V.tar.xz.sha256'
 UNFLAB_TOOLCHAIN="c autotools make"
 UNFLAB_CLASS=1
 UNFLAB_PACKAGES=htop

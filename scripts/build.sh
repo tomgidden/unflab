@@ -114,6 +114,35 @@ if [[ -n "${UNFLAB_SHA256:-}" ]]; then
 
   echo "==> Checksum OK"
 
+  # The pin proves the tarball hasn't changed since someone recorded
+  # it. Attestation asks a different question: was the tarball ever
+  # the right one? UNFLAB_ATTEST names what the upstream publishes --
+  # a detached signature, a checksum file, or nothing -- and
+  # unflab_attest checks our pin against it.
+  #
+  # Off by default so an ordinary build stays fast and works offline;
+  # CI sets UNFLAB_ATTEST_CHECK=1 so nothing ships unattested without
+  # that being a recorded, deliberate fact.
+  if [[ "${UNFLAB_ATTEST_CHECK:-0}" == "1" ]]; then
+    echo "==> Checking upstream attestation"
+    # shellcheck source=lib/attest.sh
+    source "$SCRIPT_DIR/lib/attest.sh"
+    unflab_attest "$tarball" "$UNFLAB_SHA256" \
+      "${UNFLAB_ATTEST:-}" "$UNFLAB_VERSION" "${UNFLAB_SIG_URL:-$UNFLAB_SOURCE.sig}"
+    rc=$?
+    # 1 means the upstream's own evidence disagrees with our pin --
+    # never a network problem, always a reason to stop. 2 means the
+    # evidence couldn't be fetched, which fails a release but
+    # shouldn't block a developer behind a flaky connection.
+    if [[ $rc -eq 1 ]]; then
+      echo "build.sh: upstream attestation FAILED -- refusing to build" >&2
+      exit 1
+    elif [[ $rc -eq 2 && "${UNFLAB_ATTEST_STRICT:-0}" == "1" ]]; then
+      echo "build.sh: attestation evidence unavailable (strict mode)" >&2
+      exit 1
+    fi
+  fi
+
 else
   # No checksum, so refuse rather than silently trusting it.
   # XXX: I guess we _could_ have "NO_CHECKSUM" in the recipe to skip

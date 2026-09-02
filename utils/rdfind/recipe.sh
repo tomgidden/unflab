@@ -13,6 +13,7 @@ UNFLAB_LICENSE=GPL-2.0-or-later
 UNFLAB_SOURCE=https://rdfind.pauldreik.se/rdfind-1.8.0.tar.gz
 UNFLAB_CHECK=html:https://rdfind.pauldreik.se/:rdfind
 UNFLAB_SHA256=0a2d0d32002cc2dc0134ee7b649bcc811ecfb2f8d9f672aa476a851152e7af35
+UNFLAB_ATTEST='none:upstream download page publishes no checksum or signature'
 UNFLAB_TOOLCHAIN="c autotools make"
 UNFLAB_CLASS=1
 UNFLAB_PACKAGES=rdfind
