@@ -1,0 +1,146 @@
+name: Propose upstream bumps
+
+# Turns the nightly version report into something you can act on.
+#
+# For each outdated recipe: rewrite it to the new version, re-pin the
+# SHA-256, check it against whatever the upstream publishes, and open a
+# pull request. build.yml already runs on pull_request, so the PR gets
+# the full matrix -- build, otool gate, litmus test, attestation in
+# strict mode -- with no extra wiring. A green PR is a bump that has
+# been proven to build; a red one is a bump that shouldn't be merged.
+#
+# Nothing here can ship a package. Branches are namespaced bump/* and
+# never tagged v*, so release.yml cannot fire on them; merging to main
+# stays a human act, and releasing stays a separate human act after
+# that.
+
+on:
+  schedule:
+    # An hour after check-updates, so the report exists first and the
+    # two aren't competing for the same API budget.
+    - cron: "15 8 * * *"
+  workflow_dispatch:
+    inputs:
+      recipe:
+        description: "Single recipe to bump (blank = all outdated)"
+        required: false
+      version:
+        description: "Target version (requires recipe; blank = latest)"
+        required: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  propose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # A shallow clone can't branch off main cleanly.
+          fetch-depth: 0
+
+      - name: Work out what to bump
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${{ inputs.recipe }}" ]; then
+            if [ -n "${{ inputs.version }}" ]; then
+              echo "${{ inputs.recipe }} ${{ inputs.version }}" > plan.txt
+            else
+              # Resolve just this one through the same checker, so a
+              # manual run and a nightly run agree about what "latest"
+              # means.
+              scripts/check-updates.sh "${{ inputs.recipe }}" \
+                | awk '/UPDATE$/ { print $1, $3 }' > plan.txt
+            fi
+          else
+            scripts/check-updates.sh | awk '/UPDATE$/ { print $1, $3 }' > plan.txt
+          fi
+
+          echo "count=$(wc -l < plan.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
+          echo "Planned bumps:"; cat plan.txt
+
+      - name: Open a pull request per bump
+        if: steps.plan.outputs.count != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          # Created here rather than assumed: gh pr create fails
+          # outright on a label that doesn't exist.
+          gh label create upstream-bump --repo "$GITHUB_REPOSITORY" \
+            --color 1D76DB --description "Automated version bump" \
+            2>/dev/null || true
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          opened=0
+          skipped=0
+          failed=0
+
+          while read -r recipe version; do
+            [ -n "$recipe" ] || continue
+            branch="bump/$recipe-$version"
+
+            # Already proposed: don't reopen it every night. The branch
+            # existing is the record that this bump has been offered.
+            if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+              echo "== $recipe $version: already proposed ($branch)"
+              skipped=$((skipped + 1))
+              continue
+            fi
+
+            echo "== $recipe -> $version"
+            git checkout -q -B "$branch" origin/main
+
+            # bump.sh refuses if the upstream's own evidence contradicts
+            # the download, so a failure here is a reason not to open
+            # the PR at all rather than something to review.
+            if ! scripts/bump.sh "$recipe" "$version" >bump.log 2>&1; then
+              echo "   bump failed:"; sed 's/^/   /' bump.log
+              failed=$((failed + 1))
+              git checkout -q main
+              continue
+            fi
+
+            attested=$(grep -c 'attest: sha256 matches\|attest: OpenPGP signature verified' bump.log || true)
+            if [ "$attested" -gt 0 ]; then
+              evidence="Verified against the checksum or signature the upstream publishes."
+            else
+              evidence="This upstream publishes nothing to verify against; see UNFLAB_ATTEST in the recipe. The pin below is what was downloaded, nothing more."
+            fi
+
+            git add "utils/$recipe/recipe.sh"
+            msg="$(printf '%s\n\n%s\n\n%s\n' \
+              "$recipe: $version" \
+              "Automated version bump. The recipe's declarations are rewritten; comments mentioning the old version are deliberately left alone for a human to update." \
+              "$evidence")"
+            git commit -q -m "$msg"
+
+            git push -q origin "$branch"
+
+            gh pr create \
+              --title "$recipe $version" \
+              --head "$branch" \
+              --base main \
+              --label upstream-bump \
+              --body "$(printf '%s\n\n%s\n\n%s\n' \
+                "Bumps \`$recipe\` to $version." \
+                "$evidence" \
+                "CI on this PR builds it, runs the otool gate and the litmus test, and checks attestation in strict mode. Merge only if it is green. Comments in the recipe that mention the old version are not updated automatically -- worth a look before merging.")" \
+              || { echo "   PR creation failed"; failed=$((failed + 1)); continue; }
+
+            opened=$((opened + 1))
+            git checkout -q main
+          done < plan.txt
+
+          echo
+          echo "$opened opened, $skipped already proposed, $failed failed."
+          [ "$failed" -eq 0 ]
