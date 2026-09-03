@@ -29,7 +29,7 @@ jobs:
     outputs:
       matrix: ${{ steps.list.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Needed to diff against the base branch below.
           fetch-depth: 0
@@ -38,19 +38,40 @@ jobs:
           set -euo pipefail
           all=$(ls -d utils/*/ | xargs -n1 basename | sort)
 
-          # On a pull request, build only what the diff can affect. A
-          # bump PR touches one recipe, and rebuilding the other
-          # fifteen -- coreutils' five minutes included -- makes the
-          # check slow enough that nobody waits for it.
+          # Build only what the diff can affect, on pushes as well as
+          # pull requests. Merging a one-recipe bump used to rebuild
+          # all sixteen: not because any job is slow, but because
+          # sixteen jobs queue against a small macOS runner pool, and
+          # the run takes ten minutes of wall clock to do thirty
+          # seconds of useful work.
           #
           # Anything shared (the build driver, the installer template,
           # a lib/ helper, the workflow itself) still means everything,
           # because those change every artefact. That is the same rule
           # build-key.sh encodes for releases.
           names="$all"
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            changed=$(git diff --name-only \
-              "origin/${{ github.base_ref }}"...HEAD)
+          changed=""
+          case "${{ github.event_name }}" in
+            pull_request)
+              changed=$(git diff --name-only \
+                "origin/${{ github.base_ref }}"...HEAD)
+              ;;
+            push)
+              # A merge commit's first parent is the previous main, so
+              # this is the diff the merge introduced. On a force-push
+              # or a new branch the before-SHA is all zeroes and there
+              # is nothing to compare against -- build everything.
+              before="${{ github.event.before }}"
+              if [ -n "$before" ] && [ "$before" != "0000000000000000000000000000000000000000" ] \
+                 && git cat-file -e "$before^{commit}" 2>/dev/null; then
+                changed=$(git diff --name-only "$before" HEAD)
+              else
+                echo "No usable before-SHA -- building everything."
+              fi
+              ;;
+          esac
+
+          if [ -n "$changed" ]; then
             echo "Changed files:"; echo "$changed" | sed 's/^/  /'
 
             # True if any changed file is outside utils/ -- count the
@@ -93,7 +114,7 @@ jobs:
           #   arch: x86_64-apple-darwin
     runs-on: ${{ matrix.target.runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - id: toolchains
         run: |
@@ -103,7 +124,7 @@ jobs:
           echo "cmake=$(need cmake)" >> "$GITHUB_OUTPUT"
 
       - if: steps.toolchains.outputs.go == 'true'
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version: "1.26"
           cache: false
@@ -144,7 +165,7 @@ jobs:
       - name: Litmus test
         run: scripts/litmus-test.sh ${{ matrix.target.arch }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dist-${{ matrix.recipe }}-${{ matrix.target.arch }}
           path: |

@@ -24,7 +24,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # GH_TOKEN raises the GitHub API rate limit from 60/hour
       # (unauthenticated, shared across every runner on the host) to
