@@ -30,5 +30,3 @@ to add it — it won't edit your shell config without asking.
 `tree` is Steve Baker's work, not this project's. unflab only compiles
 and packages it. The exact source tarball and its checksum are recorded
 in the recipe this package was built from.
-
-# Upstream is at 1.11.0 as of 2026-09-03.
