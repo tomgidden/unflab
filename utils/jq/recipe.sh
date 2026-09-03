@@ -6,12 +6,12 @@
 # tools, and because it should install the same way as everything else.
 
 UNFLAB_NAME=jq
-UNFLAB_VERSION=1.8.1
+UNFLAB_VERSION=1.8.2
 UNFLAB_HOMEPAGE=https://jqlang.github.io/jq/
 UNFLAB_LICENSE=MIT
-UNFLAB_SOURCE=https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-1.8.1.tar.gz
+UNFLAB_SOURCE=https://github.com/jqlang/jq/releases/download/jq-1.8.2/jq-1.8.2.tar.gz
 UNFLAB_CHECK=github:jqlang/jq
-UNFLAB_SHA256=2be64e7129cecb11d5906290eba10af694fb9e3e7f9fc208a311dc33ca837eb0
+UNFLAB_SHA256=71b8d6e8f5fe81f6c6d0d110e3892251f6ce76ed095abd315e26e6e1193af3af
 UNFLAB_ATTEST='sha256:https://github.com/jqlang/jq/releases/download/jq-$V/sha256sum.txt'
 UNFLAB_TOOLCHAIN="c autotools make"
 UNFLAB_CLASS=3
