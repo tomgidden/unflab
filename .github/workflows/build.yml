@@ -30,13 +30,46 @@ jobs:
       matrix: ${{ steps.list.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Needed to diff against the base branch below.
+          fetch-depth: 0
       - id: list
         run: |
           set -euo pipefail
-          names=$(ls -d utils/*/ | xargs -n1 basename | sort)
+          all=$(ls -d utils/*/ | xargs -n1 basename | sort)
+
+          # On a pull request, build only what the diff can affect. A
+          # bump PR touches one recipe, and rebuilding the other
+          # fifteen -- coreutils' five minutes included -- makes the
+          # check slow enough that nobody waits for it.
+          #
+          # Anything shared (the build driver, the installer template,
+          # a lib/ helper, the workflow itself) still means everything,
+          # because those change every artefact. That is the same rule
+          # build-key.sh encodes for releases.
+          names="$all"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            changed=$(git diff --name-only \
+              "origin/${{ github.base_ref }}"...HEAD)
+            echo "Changed files:"; echo "$changed" | sed 's/^/  /'
+
+            # True if any changed file is outside utils/ -- count the
+            # ones that are inside and compare, rather than relying on
+            # a negated grep whose exit status is easy to misread.
+            total=$(echo "$changed" | grep -c .)
+            in_utils=$(echo "$changed" | grep -cE '^utils/[^/]+/' || true)
+            if [ "$total" -ne "$in_utils" ]; then
+              echo "Shared files changed -- building everything."
+            else
+              names=$(echo "$changed" | sed -n 's|^utils/\([^/]*\)/.*|\1|p' \
+                        | sort -u)
+              [ -n "$names" ] || names="$all"
+            fi
+          fi
+
           json=$(printf '%s\n' $names | jq -R . | jq -sc .)
           echo "matrix=$json" >> "$GITHUB_OUTPUT"
-          echo "Recipes: $names"
+          echo "Building: $(echo $names | tr '\n' ' ')"
 
   build:
     name: ${{ matrix.recipe }} (${{ matrix.target.arch }})
