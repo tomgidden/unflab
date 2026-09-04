@@ -6,12 +6,12 @@
 # should install the same way as everything else.
 
 UNFLAB_NAME=miller
-UNFLAB_VERSION=6.15.0
+UNFLAB_VERSION=6.21.0
 UNFLAB_HOMEPAGE=https://miller.readthedocs.io/
 UNFLAB_LICENSE=BSD-2-Clause
-UNFLAB_SOURCE=https://github.com/johnkerl/miller/archive/refs/tags/v6.15.0.tar.gz
+UNFLAB_SOURCE=https://github.com/johnkerl/miller/archive/refs/tags/v6.21.0.tar.gz
 UNFLAB_CHECK=github:johnkerl/miller
-UNFLAB_SHA256=91f1cbb91db6b6f93f0b582b73fede6659e37a730d8f30f7bb5e0ce5c356f63d
+UNFLAB_SHA256=f92366ed67ffdbc75e8daf99a5087bcaa786c50f7c0eec08a8846e14fe7b2e5d
 UNFLAB_ATTEST='none:upstream checksums cover release binaries, not the tag archive we build from'
 UNFLAB_TOOLCHAIN="go"
 UNFLAB_CLASS=3
@@ -33,7 +33,7 @@ unflab_build() {
 unflab_stage() {
   install -d "$STAGE_DIR/bin" "$STAGE_DIR/share/man/man1"
   install -m 755 mlr "$STAGE_DIR/bin/mlr"
-  install -m 644 docs/src/mlr.1 "$STAGE_DIR/share/man/man1/mlr.1"
+  install -m 644 man/mlr.1 "$STAGE_DIR/share/man/man1/mlr.1"
   install -m 644 LICENSE.txt "$STAGE_DIR/LICENSE"
   install -m 644 "$RECIPE_DIR/README.md" "$STAGE_DIR/README.md"
 }
