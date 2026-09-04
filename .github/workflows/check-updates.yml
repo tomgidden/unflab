@@ -11,9 +11,9 @@ name: Check upstream versions
 
 on:
   schedule:
-    # 07:15 UTC. Off the hour because the top of the hour is when
+    # 06:34 UTC. Off the hour because the top of the hour is when
     # everyone else's cron fires and GitHub queues them.
-    - cron: "15 7 * * *"
+    - cron: "34 6 * * *"
   workflow_dispatch: {}
 
 permissions:
@@ -86,7 +86,7 @@ jobs:
           body=$(printf '%s\n\n```\n%s\n```\n\n%s\n' \
             "Nightly upstream check for $(date -u +%Y-%m-%d)." \
             "$(cat report.txt)" \
-            "Bumping means updating UNFLAB_VERSION and UNFLAB_SHA256 together, then rebuilding. Deliberate by design -- see scripts/check-updates.sh.")
+            "See scripts/check-updates.sh.")
 
           if [ -n "$existing" ]; then
             gh issue edit "$existing" --repo "$GITHUB_REPOSITORY" --body "$body"
