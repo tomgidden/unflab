@@ -33,7 +33,7 @@ unflab_build() {
 unflab_stage() {
   install -d "$STAGE_DIR/bin" "$STAGE_DIR/share/man/man1"
   install -m 755 mlr "$STAGE_DIR/bin/mlr"
-  install -m 644 docs/src/mlr.1 "$STAGE_DIR/share/man/man1/mlr.1"
+  install -m 644 man/mlr.1 "$STAGE_DIR/share/man/man1/mlr.1"
   install -m 644 LICENSE.txt "$STAGE_DIR/LICENSE"
   install -m 644 "$RECIPE_DIR/README.md" "$STAGE_DIR/README.md"
 }
