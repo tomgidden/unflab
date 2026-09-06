@@ -121,14 +121,44 @@ unflab_attest() {
         _cleanup; return 2
       fi
 
-      if gpg --homedir "$home" --batch --quiet \
-           --no-default-keyring --keyring "$tmp/keyring.gpg" \
-           --verify "$tmp/sig" "$tarball" 2>/dev/null; then
-        echo "attest: OpenPGP signature verified"
+      # A release may carry several signatures -- Subversion's .asc has
+      # two, from different release managers -- and gpg exits non-zero
+      # if ANY of them fails, including one whose key simply isn't in
+      # the keyring. Taking that exit status at face value rejects a
+      # perfectly good release.
+      #
+      # What actually matters is whether at least one signature is
+      # good, so read the machine-readable status instead of the exit
+      # code. GOODSIG means a signature verified against a key from
+      # the keyring this recipe pinned; nothing else counts.
+      #
+      # TRUST_UNDEFINED is expected and ignored: the keyring is a
+      # throwaway with no web of trust, and the trust anchor here is
+      # having fetched KEYS from the project's own site, not gpg's
+      # opinion of who signed whose key.
+      local status
+      status="$(gpg --homedir "$home" --batch --quiet \
+                  --no-default-keyring --keyring "$tmp/keyring.gpg" \
+                  --status-fd 1 --verify "$tmp/sig" "$tarball" 2>/dev/null)"
+
+      if grep -q '^\[GNUPG:\] GOODSIG ' <<<"$status"; then
+        local who
+        who="$(sed -n 's/^\[GNUPG:\] GOODSIG [0-9A-F]* //p' <<<"$status" \
+               | head -1)"
+        echo "attest: OpenPGP signature verified (${who:-unknown signer})"
         _cleanup; return 0
       fi
 
-      echo "attest: SIGNATURE VERIFICATION FAILED for $base" >&2
+      # No good signature. Distinguish a bad one from one we simply
+      # have no key for: the first is an attack, the second is a
+      # keyring that needs updating.
+      if grep -q '^\[GNUPG:\] BADSIG ' <<<"$status"; then
+        echo "attest: BAD SIGNATURE for $base -- the bytes do not match" >&2
+        _cleanup; return 1
+      fi
+
+      echo "attest: no usable signature for $base" >&2
+      echo "  none of the signatures matched a key in the pinned keyring" >&2
       _cleanup; return 1
       ;;
 

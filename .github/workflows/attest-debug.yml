@@ -6,35 +6,34 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - run: |
-          set -x
-          curl -fsSL -o /tmp/svn.tar.bz2 https://archive.apache.org/dist/subversion/subversion-1.14.5.tar.bz2
-          curl -fsSL -o /tmp/svn.asc https://archive.apache.org/dist/subversion/subversion-1.14.5.tar.bz2.asc
-          curl -fsSL -o /tmp/KEYS https://downloads.apache.org/subversion/KEYS
-          H=/tmp/gh.$$; mkdir -p $H; chmod 700 $H
-          echo "--- import (stderr shown):"
-          gpg --homedir $H --batch --no-default-keyring --keyring /tmp/kr.gpg --import /tmp/KEYS 2>&1 | tail -5
-          echo "--- keys in ring:"
-          gpg --homedir $H --batch --no-default-keyring --keyring /tmp/kr.gpg --list-keys 2>&1 | grep -c '^pub' || true
-          echo "--- verify (stderr shown):"
-          gpg --homedir $H --batch --no-default-keyring --keyring /tmp/kr.gpg --verify /tmp/svn.asc /tmp/svn.tar.bz2 2>&1 | tail -8
-          echo "verify rc=$?"
-          echo "=== now the real attest.sh path:"
-          export BUILD_DIR=/tmp
+          set -uo pipefail
           source scripts/lib/attest.sh
-          sha=$(shasum -a 256 /tmp/svn.tar.bz2 | awk '{print $1}')
-          set +x
-          unflab_attest /tmp/svn.tar.bz2 "$sha" \
+
+          check() { # name url attest-spec sig-url
+            echo "=== $1"
+            curl -fsSL -o /tmp/t.tar "$2" || { echo "  fetch failed"; return; }
+            sha=$(shasum -a 256 /tmp/t.tar | awk '{print $1}')
+            unflab_attest /tmp/t.tar "$sha" "$3" "" "$4"
+            echo "  rc=$?"
+          }
+
+          check subversion \
+            https://archive.apache.org/dist/subversion/subversion-1.14.5.tar.bz2 \
             "gnupg:https://downloads.apache.org/subversion/KEYS" \
-            "1.14.5" \
-            "https://archive.apache.org/dist/subversion/subversion-1.14.5.tar.bz2.asc"
-          echo "unflab_attest rc=$?"
-          echo "=== replicate attest.sh's exact gpg invocation:"
-          tmp=$(mktemp -d); home=/tmp/ua.$$; mkdir -p $home; chmod 700 $home
-          cp /tmp/svn.asc $tmp/sig
-          cp /tmp/KEYS $tmp/keyring
-          gpg --homedir "$home" --batch --quiet --no-default-keyring \
-            --keyring "$tmp/keyring.gpg" --import "$tmp/keyring"
-          echo "import rc=$?"
-          gpg --homedir "$home" --batch --quiet --no-default-keyring \
-            --keyring "$tmp/keyring.gpg" --verify "$tmp/sig" /tmp/svn.tar.bz2
-          echo "EXACT verify rc=$?"
+            https://archive.apache.org/dist/subversion/subversion-1.14.5.tar.bz2.asc
+
+          check wget https://ftp.gnu.org/gnu/wget/wget-1.25.0.tar.gz \
+            "gnupg:https://ftp.gnu.org/gnu/gnu-keyring.gpg" \
+            https://ftp.gnu.org/gnu/wget/wget-1.25.0.tar.gz.sig
+
+          check coreutils https://ftp.gnu.org/gnu/coreutils/coreutils-9.11.tar.xz \
+            "gnupg:https://ftp.gnu.org/gnu/gnu-keyring.gpg" \
+            https://ftp.gnu.org/gnu/coreutils/coreutils-9.11.tar.xz.sig
+
+          echo "=== tampered tarball must FAIL:"
+          echo "corrupt" >> /tmp/t.tar
+          sha=$(shasum -a 256 /tmp/t.tar | awk '{print $1}')
+          unflab_attest /tmp/t.tar "$sha" \
+            "gnupg:https://ftp.gnu.org/gnu/gnu-keyring.gpg" "" \
+            https://ftp.gnu.org/gnu/coreutils/coreutils-9.11.tar.xz.sig
+          echo "  rc=$? (must be 1)"
