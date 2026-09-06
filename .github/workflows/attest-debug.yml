@@ -18,3 +18,13 @@ jobs:
           echo "--- verify (stderr shown):"
           gpg --homedir $H --batch --no-default-keyring --keyring /tmp/kr.gpg --verify /tmp/svn.asc /tmp/svn.tar.bz2 2>&1 | tail -8
           echo "verify rc=$?"
+          echo "=== now the real attest.sh path:"
+          export BUILD_DIR=/tmp
+          source scripts/lib/attest.sh
+          sha=$(shasum -a 256 /tmp/svn.tar.bz2 | awk '{print $1}')
+          set +x
+          unflab_attest /tmp/svn.tar.bz2 "$sha" \
+            "gnupg:https://downloads.apache.org/subversion/KEYS" \
+            "1.14.5" \
+            "https://archive.apache.org/dist/subversion/subversion-1.14.5.tar.bz2.asc"
+          echo "unflab_attest rc=$?"
