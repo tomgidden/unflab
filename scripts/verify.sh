@@ -39,6 +39,22 @@ check_one() {
   # as something shipped, so an empty package stays distinguishable from
   # a deliberately script-only one.
   if ! grep -q 'Mach-O' <<<"$type"; then
+    # A libtool wrapper is a script that stands in for a binary during
+    # the build, with the real executable hidden in .libs/. Staging one
+    # ships something that references build-tree paths and won't run
+    # anywhere else -- and because it is a script it would otherwise
+    # sail past the gate as a "script-only package". A recipe that
+    # produces these needs `make install`, not a copy from the build
+    # tree.
+    if grep -qs 'temporary wrapper script' "$f"; then
+      echo "FAIL  $f" >&2
+      echo "      libtool wrapper script, not the real binary." >&2
+      echo "      The executable is in .libs/ -- the recipe should" >&2
+      echo "      'make install' and stage from the install prefix." >&2
+      fail=$((fail + 1))
+      return 0
+    fi
+
     grep -qE 'script|text executable' <<<"$type" && scripts=$((scripts + 1))
     return 0
   fi

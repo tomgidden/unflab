@@ -16,9 +16,10 @@ name: Propose upstream bumps
 
 on:
   schedule:
-    # An hour after check-updates, so the report exists first and the
-    # two aren't competing for the same API budget.
-    - cron: "15 8 * * *"
+    # Shortly after check-updates, so the report exists first. Both
+    # resolve upstream versions, so the gap only needs to be long
+    # enough that they aren't running concurrently.
+    - cron: "34 7 * * *"
   workflow_dispatch:
     inputs:
       recipe:

@@ -2,17 +2,21 @@
 # against evidence the upstream published, independently of our own
 # download.
 #
-# Why this exists: bump.sh computes a SHA-256 from a tarball it just
-# fetched. That hash attests to nothing on its own -- if the download
+# bump.sh computes a SHA-256 from a tarball it just fetched. 
+# That hash attests to nothing on its own -- if the download
 # were tampered with, the bot would faithfully record the tampered
-# file's hash. Comparing against a signature or checksum the upstream
-# published separately is what turns a recomputation into a check.
+# file's hash. 
+#
+# This script attempts to verify that hash against a signature or
+# checksum published separately by the upstream.
 #
 # Recipes declare what their upstream offers in UNFLAB_ATTEST:
 #
 #   gnupg:<keyring-url>   detached OpenPGP signature at <source>.sig,
 #                         verified against a pinned keyring
+#
 #   sha256:<url>          a shasum-format file listing <basename>
+#
 #   none:<reason>         nothing published -- the reason is recorded
 #                         so "unverifiable" is a stated fact rather
 #                         than an omission nobody noticed

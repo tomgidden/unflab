@@ -70,6 +70,11 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 # so derive the others from its parent.
 BASE=$(dirname "$PREFIX")
 MANDIR="$BASE/share/man/man1"
+# Sections 5 and 8 exist for the same reason section 1 does: a daemon's
+# page belongs in 8 and its config file's in 5, and `man svnserve`
+# only finds them if they are filed correctly.
+MAN5DIR="$BASE/share/man/man5"
+MAN8DIR="$BASE/share/man/man8"
 DOCDIR="$BASE/share/doc/$UTIL"
 # Arch-independent files the program reads at run time (btop's themes).
 # btop finds these relative to its own binary -- ../share/btop/themes --
@@ -90,6 +95,8 @@ dest_dir_for() {
   case "$1" in
     bin)        printf '%s' "$PREFIX" ;;
     man1)       printf '%s' "$MANDIR" ;;
+    man5)       printf '%s' "$MAN5DIR" ;;
+    man8)       printf '%s' "$MAN8DIR" ;;
     doc)        printf '%s' "$DOCDIR" ;;
     data)       printf '%s' "$DATADIR" ;;
     config)     printf '%s' "$CONFDIR" ;;
@@ -184,7 +191,11 @@ UNFLAB_EOF
   # or $MANDIR, which belong to the user and hold other tools' files.
   # $DATADIR is listed after its own subdirectories: rmdir only removes
   # an empty directory, so themes/ has to go before share/btop/ can.
-  for d in "$DATADIR"/* "$DATADIR" "$DOCDIR" "$CONFDIR"; do
+  # man5/man8 are pruned but man1 is not: man1 almost certainly holds
+  # other tools' pages, while these two are usually ours alone. rmdir
+  # refuses a non-empty directory either way, so this is safe.
+  for d in "$DATADIR"/* "$DATADIR" "$DOCDIR" "$CONFDIR" \
+           "$MAN5DIR" "$MAN8DIR"; do
     # If it exists, try to remove it. If it has contents, it'll fail.
     # If it doesn't exist, we don't mention it.
     [ -d "$d" ] && rmdir "$d" 2>/dev/null && echo "Removed empty $d"
