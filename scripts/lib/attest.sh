@@ -137,9 +137,12 @@ unflab_attest() {
       # having fetched KEYS from the project's own site, not gpg's
       # opinion of who signed whose key.
       local status
+      # gpg's own exit status is deliberately ignored -- that is the
+      # bug this replaced -- so || true keeps set -e out of it.
       status="$(gpg --homedir "$home" --batch --quiet \
                   --no-default-keyring --keyring "$tmp/keyring.gpg" \
-                  --status-fd 1 --verify "$tmp/sig" "$tarball" 2>/dev/null)"
+                  --status-fd 1 --verify "$tmp/sig" "$tarball" 2>/dev/null \
+                || true)"
 
       # EXPKEYSIG counts as verified. It means the signature is
       # cryptographically good but the key has since expired -- which
@@ -150,13 +153,16 @@ unflab_attest() {
       # being asked here. A revoked key would be REVKEYSIG and is not
       # accepted.
       local good
-      good="$(grep -m1 -E '^\[GNUPG:\] (GOODSIG|EXPKEYSIG) ' <<<"$status")"
+      # || true throughout: this function is sourced into build.sh,
+      # which runs under `set -e`, and a grep that finds nothing is a
+      # normal outcome here rather than an error.
+      good="$(grep -m1 -E '^\[GNUPG:\] (GOODSIG|EXPKEYSIG) ' <<<"$status" || true)"
 
       if [ -n "$good" ]; then
         local who note=""
         who="$(sed -E 's/^\[GNUPG:\] (GOODSIG|EXPKEYSIG) [0-9A-F]+ //' \
-               <<<"$good")"
-        grep -q '^\[GNUPG:\] EXPKEYSIG ' <<<"$good" && note=", key since expired"
+               <<<"$good" || true)"
+        grep -q '^\[GNUPG:\] EXPKEYSIG ' <<<"$good" && note=", key since expired" || true
         echo "attest: OpenPGP signature verified (${who:-unknown signer}$note)"
         _cleanup; return 0
       fi
