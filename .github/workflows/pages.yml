@@ -14,6 +14,10 @@ name: Deploy docs to GitHub Pages
 on:
   push:
     branches: [main]
+  # Kept for a release published by hand or by a PAT. It does NOT fire
+  # for our own release job: GitHub raises no workflow events for
+  # anything done with the default GITHUB_TOKEN, so release.yml
+  # dispatches this workflow explicitly once it has published.
   release:
     types: [published]
   workflow_dispatch: {}
