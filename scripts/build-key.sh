@@ -56,8 +56,14 @@ IMAGE="${2:-$(uname -m)-$(sw_vers -productVersion 2>/dev/null || echo unknown)}"
   # Only the helpers this recipe sources. Hashing all of scripts/lib
   # would make an OpenSSL bump rebuild every package in the repo,
   # which is the opposite of the point.
-  grep -ho 'scripts/lib/[A-Za-z0-9_-]*\.sh' \
-    "$ROOT_DIR/utils/$RECIPE/recipe.sh" 2>/dev/null | sort -u |
+  #
+  # The `|| true` is load-bearing: most recipes source no helper at all,
+  # and a grep that matches nothing exits 1. Under `set -euo pipefail`
+  # that became the exit status of this whole brace group, so build-key
+  # printed a perfectly good key and then exited 1 -- which killed the
+  # release workflow's step for all fourteen recipes without a helper.
+  { grep -ho 'scripts/lib/[A-Za-z0-9_-]*\.sh' \
+      "$ROOT_DIR/utils/$RECIPE/recipe.sh" 2>/dev/null || true; } | sort -u |
   while read -r rel; do
     [[ -f "$ROOT_DIR/$rel" ]] || continue
     printf '%s ' "$rel"
