@@ -1,0 +1,20 @@
+name: Debug attestation
+on: { workflow_dispatch: {} }
+jobs:
+  t:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: |
+          set -x
+          curl -fsSL -o /tmp/svn.tar.bz2 https://archive.apache.org/dist/subversion/subversion-1.14.5.tar.bz2
+          curl -fsSL -o /tmp/svn.asc https://archive.apache.org/dist/subversion/subversion-1.14.5.tar.bz2.asc
+          curl -fsSL -o /tmp/KEYS https://downloads.apache.org/subversion/KEYS
+          H=/tmp/gh.$$; mkdir -p $H; chmod 700 $H
+          echo "--- import (stderr shown):"
+          gpg --homedir $H --batch --no-default-keyring --keyring /tmp/kr.gpg --import /tmp/KEYS 2>&1 | tail -5
+          echo "--- keys in ring:"
+          gpg --homedir $H --batch --no-default-keyring --keyring /tmp/kr.gpg --list-keys 2>&1 | grep -c '^pub' || true
+          echo "--- verify (stderr shown):"
+          gpg --homedir $H --batch --no-default-keyring --keyring /tmp/kr.gpg --verify /tmp/svn.asc /tmp/svn.tar.bz2 2>&1 | tail -8
+          echo "verify rc=$?"
