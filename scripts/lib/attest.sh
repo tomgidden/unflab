@@ -141,12 +141,31 @@ unflab_attest() {
                   --no-default-keyring --keyring "$tmp/keyring.gpg" \
                   --status-fd 1 --verify "$tmp/sig" "$tarball" 2>/dev/null)"
 
-      if grep -q '^\[GNUPG:\] GOODSIG ' <<<"$status"; then
-        local who
-        who="$(sed -n 's/^\[GNUPG:\] GOODSIG [0-9A-F]* //p' <<<"$status" \
-               | head -1)"
-        echo "attest: OpenPGP signature verified (${who:-unknown signer})"
+      # EXPKEYSIG counts as verified. It means the signature is
+      # cryptographically good but the key has since expired -- which
+      # is the normal state of any archived release whose maintainer
+      # rotated a key afterwards (wget 1.25.0 is signed by a key that
+      # has since expired). Expiry says nothing about whether these
+      # bytes are the ones that were signed, which is the only question
+      # being asked here. A revoked key would be REVKEYSIG and is not
+      # accepted.
+      local good
+      good="$(grep -m1 -E '^\[GNUPG:\] (GOODSIG|EXPKEYSIG) ' <<<"$status")"
+
+      if [ -n "$good" ]; then
+        local who note=""
+        who="$(sed -E 's/^\[GNUPG:\] (GOODSIG|EXPKEYSIG) [0-9A-F]+ //' \
+               <<<"$good")"
+        grep -q '^\[GNUPG:\] EXPKEYSIG ' <<<"$good" && note=", key since expired"
+        echo "attest: OpenPGP signature verified (${who:-unknown signer}$note)"
         _cleanup; return 0
+      fi
+
+      # An explicitly revoked key is a refusal, not a warning: the owner
+      # withdrew it, which is exactly the case expiry is not.
+      if grep -q '^\[GNUPG:\] REVKEYSIG ' <<<"$status"; then
+        echo "attest: signature is from a REVOKED key for $base" >&2
+        _cleanup; return 1
       fi
 
       # No good signature. Distinguish a bad one from one we simply

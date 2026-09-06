@@ -7,12 +7,31 @@ jobs:
       - uses: actions/checkout@v7
       - run: |
           set -uo pipefail
-          curl -fsSL -o /tmp/wget.tgz https://ftp.gnu.org/gnu/wget/wget-1.25.0.tar.gz
-          curl -fsSL -o /tmp/wget.sig https://ftp.gnu.org/gnu/wget/wget-1.25.0.tar.gz.sig
-          curl -fsSL -o /tmp/gnu.gpg https://ftp.gnu.org/gnu/gnu-keyring.gpg
-          H=/tmp/h$$; mkdir -p $H; chmod 700 $H
-          gpg --homedir $H --batch --no-default-keyring --keyring /tmp/k.gpg \
-            --import /tmp/gnu.gpg 2>&1 | tail -2
-          echo "=== verify wget, full stderr:"
-          gpg --homedir $H --batch --no-default-keyring --keyring /tmp/k.gpg \
-            --verify /tmp/wget.sig /tmp/wget.tgz 2>&1 | tail -6
+          source scripts/lib/attest.sh
+          check() {
+            echo "=== $1"
+            curl -fsSL -o "/tmp/$1.tar" "$2" || { echo "  fetch failed"; return; }
+            sha=$(shasum -a 256 "/tmp/$1.tar" | awk '{print $1}')
+            unflab_attest "/tmp/$1.tar" "$sha" "$3" "" "$4" && rc=0 || rc=$?
+            echo "  rc=$rc"
+          }
+          check subversion \
+            https://archive.apache.org/dist/subversion/subversion-1.14.5.tar.bz2 \
+            "gnupg:https://downloads.apache.org/subversion/KEYS" \
+            https://archive.apache.org/dist/subversion/subversion-1.14.5.tar.bz2.asc
+          check wget https://ftp.gnu.org/gnu/wget/wget-1.25.0.tar.gz \
+            "gnupg:https://ftp.gnu.org/gnu/gnu-keyring.gpg" \
+            https://ftp.gnu.org/gnu/wget/wget-1.25.0.tar.gz.sig
+          check coreutils https://ftp.gnu.org/gnu/coreutils/coreutils-9.11.tar.xz \
+            "gnupg:https://ftp.gnu.org/gnu/gnu-keyring.gpg" \
+            https://ftp.gnu.org/gnu/coreutils/coreutils-9.11.tar.xz.sig
+          check inetutils https://ftp.gnu.org/gnu/inetutils/inetutils-2.8.tar.gz \
+            "gnupg:https://ftp.gnu.org/gnu/gnu-keyring.gpg" \
+            https://ftp.gnu.org/gnu/inetutils/inetutils-2.8.tar.gz.sig
+          echo "=== tampered must FAIL:"
+          echo corrupt >> /tmp/coreutils.tar
+          sha=$(shasum -a 256 /tmp/coreutils.tar | awk '{print $1}')
+          unflab_attest /tmp/coreutils.tar "$sha" \
+            "gnupg:https://ftp.gnu.org/gnu/gnu-keyring.gpg" "" \
+            https://ftp.gnu.org/gnu/coreutils/coreutils-9.11.tar.xz.sig && rc=0 || rc=$?
+          echo "  rc=$rc (must be 1)"
