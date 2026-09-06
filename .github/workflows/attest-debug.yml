@@ -28,3 +28,13 @@ jobs:
             "1.14.5" \
             "https://archive.apache.org/dist/subversion/subversion-1.14.5.tar.bz2.asc"
           echo "unflab_attest rc=$?"
+          echo "=== replicate attest.sh's exact gpg invocation:"
+          tmp=$(mktemp -d); home=/tmp/ua.$$; mkdir -p $home; chmod 700 $home
+          cp /tmp/svn.asc $tmp/sig
+          cp /tmp/KEYS $tmp/keyring
+          gpg --homedir "$home" --batch --quiet --no-default-keyring \
+            --keyring "$tmp/keyring.gpg" --import "$tmp/keyring"
+          echo "import rc=$?"
+          gpg --homedir "$home" --batch --quiet --no-default-keyring \
+            --keyring "$tmp/keyring.gpg" --verify "$tmp/sig" /tmp/svn.tar.bz2
+          echo "EXACT verify rc=$?"
