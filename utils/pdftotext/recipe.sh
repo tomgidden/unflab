@@ -56,11 +56,21 @@ unflab_build() {
   # Type 1 subsets: 6152 words extracted, accents, CJK, ligatures and
   # -layout column positioning all correct.
   #
-  # The image codecs (libjpeg, openjpeg, libpng, libtiff, lcms) are off
-  # because nothing shipped from this build decodes images -- see
-  # unflab_stage. Poppler warns that files "will fail to display
-  # properly" without them, which is about rendering: text extraction
-  # from a page carrying a 1520x2239 RGB image was verified to work.
+  # The image codecs are off because nothing shipped from this build
+  # decodes images -- see unflab_stage. Poppler warns that files "will
+  # fail to display properly" without them, which is about rendering:
+  # text extraction from a page carrying a 1520x2239 RGB image was
+  # verified to work.
+  #
+  # PNG and Cairo need WITH_*, not ENABLE_*. Poppler looks for both with
+  # macro_optional_find_package, which creates a WITH_<name> option and
+  # then *sets* ENABLE_LIBPNG/HAVE_CAIRO from whether the package was
+  # found -- so -DENABLE_LIBPNG=OFF is silently overwritten. That is not
+  # a hypothetical: it let Homebrew's libpng16.dylib into all seven
+  # binaries on the CI runner, which the otool gate caught. It passed
+  # locally only because this machine has no Homebrew libpng to find.
+  # Cairo is written the same way and is disabled here for the same
+  # reason, before it finds a version new enough to match.
   #
   # ENABLE_BOOST is off to avoid a large build-time dependency for a
   # Splash-renderer performance optimisation that is never exercised.
@@ -75,8 +85,9 @@ unflab_build() {
     -DENABLE_CPP=OFF \
     -DENABLE_NSS3=OFF -DENABLE_GPGME=OFF \
     -DENABLE_LIBCURL=OFF \
-    -DENABLE_LIBJPEG=OFF -DENABLE_LIBPNG=OFF \
+    -DENABLE_LIBJPEG=OFF \
     -DENABLE_LIBOPENJPEG=OFF -DENABLE_LIBTIFF=OFF \
+    -DWITH_PNG=OFF -DWITH_Cairo=OFF \
     -DENABLE_LCMS=OFF \
     -DENABLE_BOOST=OFF \
     -DENABLE_UTILS=ON \
