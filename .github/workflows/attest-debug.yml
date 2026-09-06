@@ -13,8 +13,8 @@ jobs:
             echo "=== $1"
             curl -fsSL -o /tmp/t.tar "$2" || { echo "  fetch failed"; return; }
             sha=$(shasum -a 256 /tmp/t.tar | awk '{print $1}')
-            unflab_attest /tmp/t.tar "$sha" "$3" "" "$4"
-            echo "  rc=$?"
+            unflab_attest /tmp/t.tar "$sha" "$3" "" "$4" && rc=0 || rc=$?
+            echo "  rc=$rc"
           }
 
           check subversion \
@@ -35,5 +35,5 @@ jobs:
           sha=$(shasum -a 256 /tmp/t.tar | awk '{print $1}')
           unflab_attest /tmp/t.tar "$sha" \
             "gnupg:https://ftp.gnu.org/gnu/gnu-keyring.gpg" "" \
-            https://ftp.gnu.org/gnu/coreutils/coreutils-9.11.tar.xz.sig
-          echo "  rc=$? (must be 1)"
+            https://ftp.gnu.org/gnu/coreutils/coreutils-9.11.tar.xz.sig && rc=0 || rc=$?
+          echo "  rc=$rc (must be 1)"
