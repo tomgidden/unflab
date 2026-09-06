@@ -169,8 +169,14 @@ SRC_DIR="${UNFLAB_SRC_DIR:-$BUILD_ROOT/${UNFLAB_NAME}-${UNFLAB_VERSION}}"
 [[ -d "$SRC_DIR" ]] || {
   # Fall back to the single top-level directory the tarball unpacked.
 
-  # bash: read the output of `find` into an array
-  mapfile -t dirs < <(find "$BUILD_ROOT" -mindepth 1 -maxdepth 1 -type d)
+  # Read the directories into an array. Not `mapfile`: that is bash 4,
+  # and macOS ships bash 3.2, where it fails with "command not found"
+  # -- which is what happened the first time a tarball whose directory
+  # did not match <name>-<version> reached this fallback.
+  dirs=()
+  while IFS= read -r d; do
+    dirs+=("$d")
+  done < <(find "$BUILD_ROOT" -mindepth 1 -maxdepth 1 -type d)
 
   # If there's only one line, it's the one we want.
   [[ ${#dirs[@]} -eq 1 ]] && SRC_DIR="${dirs[0]}"

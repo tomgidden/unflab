@@ -1,0 +1,16 @@
+bin	755	bin/pdftotext	pdftotext	-
+bin	755	bin/pdfinfo	pdfinfo	-
+bin	755	bin/pdffonts	pdffonts	-
+bin	755	bin/pdftops	pdftops	-
+bin	755	bin/pdfdetach	pdfdetach	-
+bin	755	bin/pdfseparate	pdfseparate	-
+bin	755	bin/pdfunite	pdfunite	-
+man1	644	share/man/man1/pdftotext.1	pdftotext.1	-
+man1	644	share/man/man1/pdfinfo.1	pdfinfo.1	-
+man1	644	share/man/man1/pdffonts.1	pdffonts.1	-
+man1	644	share/man/man1/pdftops.1	pdftops.1	-
+man1	644	share/man/man1/pdfdetach.1	pdfdetach.1	-
+man1	644	share/man/man1/pdfseparate.1	pdfseparate.1	-
+man1	644	share/man/man1/pdfunite.1	pdfunite.1	-
+doc	644	README.md	README.md	-
+doc	644	LICENSE	LICENSE	-
