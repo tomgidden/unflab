@@ -6,5 +6,10 @@
       "collapsible": true,
       "defaultCollapsed": true
     }
+  },
+  "plugins": {
+    "ai": {
+      "assistant": false
+    }
   }
 }
