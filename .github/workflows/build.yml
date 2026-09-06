@@ -123,10 +123,15 @@ jobs:
           echo "go=$(need go)" >> "$GITHUB_OUTPUT"
           echo "cmake=$(need cmake)" >> "$GITHUB_OUTPUT"
 
+      # check-latest matters: without it setup-go takes whatever 1.26.x
+      # the runner image has cached, which drifts behind. doggo 1.4.0
+      # needs go >= 1.26.6 and the image was still on 1.26.5, so the
+      # build failed on a version that had been out for weeks.
       - if: steps.toolchains.outputs.go == 'true'
         uses: actions/setup-go@v7
         with:
           go-version: "1.26"
+          check-latest: true
           cache: false
 
       # Pinned to 3.x deliberately: CMake 4 removed CMP0048's OLD

@@ -55,10 +55,13 @@ jobs:
           echo "go=$(need go)" >> "$GITHUB_OUTPUT"
           echo "cmake=$(need cmake)" >> "$GITHUB_OUTPUT"
 
+      # check-latest: see the same step in build.yml -- the runner
+      # image's cached Go drifts behind what a recipe's go.mod needs.
       - if: steps.toolchains.outputs.go == 'true'
         uses: actions/setup-go@v7
         with:
           go-version: "1.26"
+          check-latest: true
           cache: false
 
       - if: steps.toolchains.outputs.cmake == 'true'
