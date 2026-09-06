@@ -1,0 +1,8 @@
+bin	755	bin/qpdf	qpdf	-
+bin	755	bin/fix-qdf	fix-qdf	-
+bin	755	bin/zlib-flate	zlib-flate	-
+man1	644	share/man/man1/qpdf.1	qpdf.1	-
+man1	644	share/man/man1/fix-qdf.1	fix-qdf.1	-
+man1	644	share/man/man1/zlib-flate.1	zlib-flate.1	-
+doc	644	README.md	README.md	-
+doc	644	LICENSE	LICENSE	-
