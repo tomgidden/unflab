@@ -8,15 +8,20 @@
     }
   },
   "layout": {
-    "menubar": {
-      "enabled": true,
-      "position": "top",
-      "right": [
+    "footer": {
+      "style": "complete",
+      "description": "Documentation built with docmd.",
+      "branding": false,
+      "columns": [
         {
-          "text": "GitHub",
-          "url": "https://github.com/unflab-app/unflab",
-          "icon": "github",
-          "external": true
+          "title": "Community",
+          "links": [
+            {
+              "icon": "github",
+              "external": true,
+              "url": "https://github.com/unflab-app/unflab"
+            }
+          ]
         }
       ]
     }
