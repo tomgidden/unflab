@@ -17,8 +17,7 @@
           "title": "Community",
           "links": [
             {
-              "icon": "github",
-              "external": true,
+              "text": "GitHub",
               "url": "https://github.com/unflab-app/unflab"
             }
           ]
