@@ -76,9 +76,14 @@ latest_version() {
       # the prefix is taken from the end rather than by splitting on
       # the first colon.
       local url="${rest%:*}" prefix="${rest##*:}"
+      # The optional -<word> between the version and the extension is
+      # for tarballs like mupdf-1.28.3-source.tar.gz. Without it the
+      # pattern still matched mupdf's ancient mupdf-0.7.tar.gz files,
+      # which are on the same page -- so the check reported "ours is
+      # newer" rather than failing, which is the worst way to be wrong.
       "${CURL[@]}" "$url" |
-        grep -oE "$prefix-[0-9][0-9.]*\.tar\.(gz|xz|bz2)" |
-        sed -E "s/^$prefix-//; s/\.tar\.(gz|xz|bz2)$//" |
+        grep -oE "$prefix-[0-9][0-9.]*(-[a-z]+)?\.tar\.(gz|xz|bz2)" |
+        sed -E "s/^$prefix-//; s/(-[a-z]+)?\.tar\.(gz|xz|bz2)$//" |
         sort -V | tail -1
       ;;
     *)
