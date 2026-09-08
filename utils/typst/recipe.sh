@@ -44,12 +44,24 @@ UNFLAB_TOOLCHAIN="rust cargo"
 UNFLAB_CLASS=3
 UNFLAB_PACKAGES=typst
 
-unflab_build() {
-  # Where build.rs is asked to write the man pages and completions. It
-  # only generates them when GEN_ARTIFACTS is set, so this is both the
-  # switch and the destination.
-  export GEN_ARTIFACTS="$BUILD_DIR/artifacts"
+# Where build.rs is asked to write the man pages and completions. It
+# only generates them when GEN_ARTIFACTS is set, so this is both the
+# switch and the destination.
+#
+# Declared at recipe scope rather than inside unflab_build because
+# build.sh runs each phase in its own subshell: an export in the build
+# would not survive into the stage, which needs the same path to find
+# the pages, and would die there under `set -u`.
+#
+# Relative, not "$BUILD_DIR/artifacts", for two reasons. build.sh
+# sources the recipe long before it exports BUILD_DIR, so at this point
+# the variable is always empty -- and both phases run under
+# `cd "$BUILD_DIR"` anyway, so a relative path is what they each
+# resolve against.
+GEN_ARTIFACTS=artifacts
+export GEN_ARTIFACTS
 
+unflab_build() {
   # `typst update` is enabled deliberately, and it is worth being clear
   # about what that means, because it is the one thing in this package
   # that can replace a gated binary with an ungated one.
@@ -114,6 +126,17 @@ unflab_stage() {
   # build.rs renders a page for typst itself and one per subcommand
   # (typst-compile.1, typst-watch.1, ...). All of them ship: they are
   # what `man typst-compile` needs to resolve, and they are small.
+  #
+  # Checked rather than globbed straight into install, because the
+  # pages exist only if build.rs saw GEN_ARTIFACTS. If that ever stops
+  # being true, an unmatched glob would stage no pages and generate a
+  # manifest that honestly lists none -- a package that installs and
+  # passes the litmus test with its documentation quietly missing.
+  # Better to stop here.
+  [ -f "$GEN_ARTIFACTS/typst.1" ] || {
+    echo "typst: no man pages in $GEN_ARTIFACTS -- did build.rs see GEN_ARTIFACTS?" >&2
+    return 1
+  }
   install -m 644 "$GEN_ARTIFACTS"/typst*.1 "$STAGE_DIR/share/man/man1/"
 
   # Shell completions are generated too, but not staged. The installer
