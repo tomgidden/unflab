@@ -44,22 +44,36 @@ UNFLAB_TOOLCHAIN="rust cargo"
 UNFLAB_CLASS=3
 UNFLAB_PACKAGES=typst
 
-# Where build.rs is asked to write the man pages and completions. It
-# only generates them when GEN_ARTIFACTS is set, so this is both the
-# switch and the destination.
+# Setting GEN_ARTIFACTS is what makes build.rs emit the man pages and
+# completions at all; unset, it renders nothing.
+#
+# The value has to be relative. build.rs does create_dir_all() on it
+# and cargo runs a build script with its working directory set to the
+# CRATE root, so "artifacts" means crates/typst-cli/artifacts -- which
+# is where the pages land, and where unflab_stage reads them from
+# below. An absolute path would work too, but "$BUILD_DIR/artifacts"
+# would not: build.sh sources this recipe ~140 lines before it exports
+# BUILD_DIR, so that expands to "/artifacts" at the filesystem root.
 #
 # Declared at recipe scope rather than inside unflab_build because
-# build.sh runs each phase in its own subshell: an export in the build
-# would not survive into the stage, which needs the same path to find
-# the pages, and would die there under `set -u`.
+# build.sh runs each phase in its own subshell, so an export in the
+# build would not survive into the stage.
 #
-# Relative, not "$BUILD_DIR/artifacts", for two reasons. build.sh
-# sources the recipe long before it exports BUILD_DIR, so at this point
-# the variable is always empty -- and both phases run under
-# `cd "$BUILD_DIR"` anyway, so a relative path is what they each
-# resolve against.
+# This is what Homebrew's formula does as well: GEN_ARTIFACTS
+# "artifacts", then install from crates/typst-cli/artifacts/*.1.
 GEN_ARTIFACTS=artifacts
 export GEN_ARTIFACTS
+
+# Where those pages actually appear, relative to the workspace root
+# that both phases run in.
+TYPST_ARTIFACTS="crates/typst-cli/$GEN_ARTIFACTS"
+
+# `typst --version` falls back to CARGO_PKG_VERSION when this is unset,
+# which is already right. It is set anyway because it is the version
+# `typst update` compares against a GitHub release to decide whether an
+# update is needed -- so it should say exactly what we built.
+TYPST_VERSION="$UNFLAB_VERSION"
+export TYPST_VERSION
 
 unflab_build() {
   # `typst update` is enabled deliberately, and it is worth being clear
@@ -133,11 +147,11 @@ unflab_stage() {
   # manifest that honestly lists none -- a package that installs and
   # passes the litmus test with its documentation quietly missing.
   # Better to stop here.
-  [ -f "$GEN_ARTIFACTS/typst.1" ] || {
-    echo "typst: no man pages in $GEN_ARTIFACTS -- did build.rs see GEN_ARTIFACTS?" >&2
+  [ -f "$TYPST_ARTIFACTS/typst.1" ] || {
+    echo "typst: no man pages in $TYPST_ARTIFACTS -- did build.rs see GEN_ARTIFACTS?" >&2
     return 1
   }
-  install -m 644 "$GEN_ARTIFACTS"/typst*.1 "$STAGE_DIR/share/man/man1/"
+  install -m 644 "$TYPST_ARTIFACTS"/typst*.1 "$STAGE_DIR/share/man/man1/"
 
   # Shell completions are generated too, but not staged. The installer
   # has a `completion` kind that only knows bash's directory, and
