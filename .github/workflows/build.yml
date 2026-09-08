@@ -45,10 +45,12 @@ jobs:
           # the run takes ten minutes of wall clock to do thirty
           # seconds of useful work.
           #
-          # Anything shared (the build driver, the installer template,
-          # a lib/ helper, the workflow itself) still means everything,
-          # because those change every artefact. That is the same rule
-          # build-key.sh encodes for releases.
+          # scripts/affected.sh maps changed files to recipes, and is
+          # where the reasoning lives -- what changes every artefact,
+          # what is scoped to the recipes that source it, and what
+          # cannot reach an artefact at all. It defaults to everything
+          # for a path it does not recognise, so a new file can never
+          # silently skip a build.
           names="$all"
           changed=""
           case "${{ github.event_name }}" in
@@ -73,19 +75,17 @@ jobs:
 
           if [ -n "$changed" ]; then
             echo "Changed files:"; echo "$changed" | sed 's/^/  /'
+            # shellcheck disable=SC2086
+            names=$(scripts/affected.sh $changed)
+          fi
 
-            # True if any changed file is outside utils/ -- count the
-            # ones that are inside and compare, rather than relying on
-            # a negated grep whose exit status is easy to misread.
-            total=$(echo "$changed" | grep -c .)
-            in_utils=$(echo "$changed" | grep -cE '^utils/[^/]+/' || true)
-            if [ "$total" -ne "$in_utils" ]; then
-              echo "Shared files changed -- building everything."
-            else
-              names=$(echo "$changed" | sed -n 's|^utils/\([^/]*\)/.*|\1|p' \
-                        | sort -u)
-              [ -n "$names" ] || names="$all"
-            fi
+          # No recipe is affected -- a docs or tooling change. Emit an
+          # empty matrix rather than a job: `if` on the build job skips
+          # it, and the aggregate still reports success.
+          if [ -z "$names" ]; then
+            echo "No recipe affected -- nothing to build."
+            echo "matrix=[]" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
           json=$(printf '%s\n' $names | jq -R . | jq -sc .)
@@ -95,6 +95,11 @@ jobs:
   build:
     name: ${{ matrix.recipe }} (${{ matrix.target.arch }})
     needs: recipes
+    # An empty matrix is a docs or tooling change that affects no
+    # recipe. Without this the job fails on the empty matrix instead of
+    # being skipped; `all` treats a skip as success, so the required
+    # check still passes.
+    if: needs.recipes.outputs.matrix != '[]'
     strategy:
       fail-fast: false
       matrix:

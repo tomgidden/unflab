@@ -214,6 +214,14 @@ Run that around your change. If the key moves for a recipe you did not
 touch, you have a Y. If nothing moves anywhere, you have no release at
 all — let it ride along with the next package change.
 
+`scripts/affected.sh` encodes the same three-way split for CI, deciding
+which recipes a push actually builds — everything, a scoped few, or
+none at all. It is the counterpart to `build-key.sh`: that one answers
+"would this artefact differ?" for the release cache, this one answers
+"should CI run?", which additionally covers the test scripts. Both
+default to doing more work rather than less when a path is unfamiliar,
+so a file added to the repo can never silently skip a build.
+
 ### Batch package changes into one Z
 
 Several bumps arriving as separate PRs should become **one** Z, not one
