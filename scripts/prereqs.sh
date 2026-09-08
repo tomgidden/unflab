@@ -80,6 +80,11 @@ for tool in $UNFLAB_TOOLCHAIN; do
         echo "           published release rather than building locally)."
         missing+=(go); } ;;
     rust|cargo)
+      # Both names mean the same check, and a recipe may reasonably
+      # name both -- the toolchain and the tool that drives it. Without
+      # this, "rust cargo" reports the same thing twice and counts it
+      # as two missing prerequisites.
+      first_time cargo || continue
       have cargo && echo "  ok       cargo" || {
         echo "  MISSING  cargo"
         echo "           Install from https://rustup.rs/"
