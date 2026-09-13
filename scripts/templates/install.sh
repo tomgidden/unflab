@@ -53,6 +53,7 @@ if [ "$TTY_OK" = 1 ]; then
 fi
 
 SELF="${0##*/}"
+WARNING="$MAGENTA"
 ERROR="$RED"
 FLAG="$GREEN"
 COMMAND="$YELLOW"
