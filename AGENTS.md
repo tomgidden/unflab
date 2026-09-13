@@ -112,9 +112,9 @@ zsh wants `_<tool>` with a `#compdef` line inside, bash and fish want
 `<tool>`.
 
 Ship a completion when upstream provides one. If a package ships a zsh
-completion, its caveats should mention that `fpath` must be set before
-`compinit` runs — appending after that line silently does nothing, and
-it is the failure people actually hit.
+completion, its post-install notes should mention that `fpath` must be
+set before `compinit` runs — appending after that line silently does
+nothing, and it is the failure people actually hit.
 
 **A file listed but missing from the package is a fatal error on the
 user's machine, not in CI.** If the staged file list is anything but
@@ -129,19 +129,43 @@ ship that too.
 
 ### Post-install notes
 
-A recipe that stages `$STAGE_DIR/.unflab/caveats.txt` gets its contents
-printed after a successful install, and only on install — never on
-uninstall. Most packages want none; the file is optional and absent
-means nothing is printed.
+A recipe that stages `$STAGE_DIR/.unflab/post-install.txt` gets its
+contents printed after a successful install, and only on install —
+never on uninstall. Most packages want none; the file is optional and
+absent means nothing is printed.
 
 It is for the case where installing is not the same as working.
 `utils/fzf` is the example: its shell integration installs to
 `share/fzf/` and does nothing at all until the user sources it, so
 without a note the install reports success while `Ctrl-R` is silently
-missing. Homebrew's `caveats` covers the same ground.
+missing. Homebrew's `caveats` covers the same ground; this is the same
+idea under a plainer name, since most of what these say is a next step
+rather than a warning.
 
 Keep it to what the user must *do*. It is printed on every install, so
 prose that merely describes the package belongs in the README.
+
+**Write the paths as variables, not as `~/.local/...`.** The installer
+substitutes this run's actual directories before printing, so a note
+stays correct under `--prefix`:
+
+| In the file | Becomes |
+|---|---|
+| `$PREFIX` | the bin directory (`~/.local/bin` by default) |
+| `$BASE` | its parent, the prefix root |
+| `$DATADIR` | `$BASE/share/<util>` |
+| `$DOCDIR`, `$CONFDIR`, `$MANDIR`, `$MAN5DIR`, `$MAN8DIR` | as the installer computes them |
+| `$UTIL`, `$VERSION` | the package name and version |
+
+Anything else is left exactly as written — `fpath=($DATADIR $fpath)`
+comes out with the path filled in and `$fpath` untouched, which is why
+these are shell instructions you can paste. A backslash before any `$`
+escapes it (`\$PREFIX` prints `$PREFIX`), and `\\$PREFIX` prints a
+literal backslash followed by the value.
+
+Hardcoding `~/.local/share/...` is the mistake to avoid: it is right
+for the default install and quietly wrong for every other one, in
+exactly the lines a user copies into an rc file.
 
 ### Verifying before you push
 

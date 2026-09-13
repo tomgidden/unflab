@@ -57,20 +57,20 @@ for pkg in "${packages[@]}"; do
   # This exists because fzf installs shell files that do nothing until
   # the user sources them: without a note the install looks like it
   # worked while Ctrl-R is silently missing.
-  caveats="$stage/.unflab/caveats.txt"
-  [[ -f "$caveats" ]] || caveats=/dev/null
+  post_install="$stage/.unflab/post-install.txt"
+  [[ -f "$post_install" ]] || post_install=/dev/null
 
-  # Generate install.sh with the manifest and caveats inlined. sed's `r`
-  # reads the file in verbatim, preserving the tabs that separate the
-  # manifest's fields; an s/// substitution can't insert multi-line
-  # content and would mangle any metacharacters in it. Caveat prose is
+  # Generate install.sh with the manifest and the notes inlined. sed's
+  # `r` reads the file in verbatim, preserving the tabs that separate
+  # the manifest's fields; an s/// substitution can't insert multi-line
+  # content and would mangle any metacharacters in it. The notes are
   # full of characters ($, `, ~, quotes) that make that a certainty
-  # rather than a risk, which is why it gets the same treatment.
+  # rather than a risk, which is why they get the same treatment.
   install_sh="$stage/install.sh"
   sed -e "/{{MANIFEST}}/r $manifest" \
       -e "/{{MANIFEST}}/d" \
-      -e "/{{CAVEATS}}/r $caveats" \
-      -e "/{{CAVEATS}}/d" \
+      -e "/{{POST_INSTALL}}/r $post_install" \
+      -e "/{{POST_INSTALL}}/d" \
       -e "s|{{UTIL}}|$pkg|g" \
       -e "s|{{VERSION}}|$version|g" \
       "$TEMPLATE" > "$install_sh"

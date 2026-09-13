@@ -15,7 +15,7 @@
 # The shell integration is the part people actually mean by "fzf": the
 # Ctrl-R history search and Ctrl-T file widget live in shell/*.zsh and
 # friends, not in the binary. Those are shipped as data and sourced by
-# the user -- see the caveats file for why they aren't wired up
+# the user -- see the post-install notes for why they aren't wired up
 # automatically.
 #
 # Not shipped: upstream's own `install`/`uninstall` scripts, which exist
@@ -88,5 +88,5 @@ unflab_stage() {
 
   # Shell integration does nothing until sourced, so the install would
   # otherwise look successful while Ctrl-R was silently missing.
-  install -m 644 "$RECIPE_DIR/caveats.txt" "$STAGE_DIR/.unflab/caveats.txt"
+  install -m 644 "$RECIPE_DIR/post-install.txt" "$STAGE_DIR/.unflab/post-install.txt"
 }

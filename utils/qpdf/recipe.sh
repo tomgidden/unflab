@@ -124,5 +124,5 @@ unflab_stage() {
 
   # Completions are inert until the shell is looking in those
   # directories, and zsh needs fpath set before compinit runs.
-  install -m 644 "$RECIPE_DIR/caveats.txt" "$STAGE_DIR/.unflab/caveats.txt"
+  install -m 644 "$RECIPE_DIR/post-install.txt" "$STAGE_DIR/.unflab/post-install.txt"
 }

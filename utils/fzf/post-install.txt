@@ -1,0 +1,16 @@
+Shell integration is installed but not enabled. fzf's Ctrl-R history
+search and Ctrl-T file widget rebind keys in your shell, so switching
+them on is left to you. Add one pair of lines to your shell's rc file:
+
+  zsh   ~/.zshrc
+        source $DATADIR/key-bindings.zsh
+        source $DATADIR/completion.zsh
+
+  bash  ~/.bashrc
+        source $DATADIR/key-bindings.bash
+        source $DATADIR/completion.bash
+
+  fish  ~/.config/fish/config.fish
+        source $DATADIR/key-bindings.fish
+
+For vim, add to your .vimrc:  set rtp+=$DATADIR

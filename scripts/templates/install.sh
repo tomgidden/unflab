@@ -43,34 +43,100 @@ UNFLAB_MANIFEST_EOF
 # Post-install notes, printed after a successful install. Empty for most
 # packages.
 #
-# Read with `read -d ''` rather than the `$(cat <<'EOF' ... )` this
-# first used, because that construct cannot survive an apostrophe. The
-# shell tokenises the whole of a $( ) BEFORE the heredoc body is taken
-# literally, so one `'` in ordinary prose -- "the package's
-# completions" -- opens a quote that never closes and the generated
-# installer fails to parse. package.sh's `sh -n` check caught it, but
-# only because a recipe happened to contain one; fzf's caveats have no
-# apostrophe and passed by luck.
+# Emitted from a function body rather than captured with
+# `NOTES=$(cat <<'EOF' ... )`, because that construct cannot survive an
+# apostrophe: the shell tokenises the whole of a $( ) BEFORE the heredoc
+# body is taken literally, so one `'` in ordinary prose -- "the
+# package's completions" -- opens a quote that never closes and the
+# generated installer fails to parse. package.sh's `sh -n` check caught
+# it, but only because a recipe happened to contain one; fzf's notes
+# have no apostrophe and passed by luck. (`read -r -d '' NOTES` also
+# fixes the quoting, but -d is a bashism dash rejects, and this script
+# promises POSIX sh.)
 #
 # The quoted delimiter is still load-bearing: this is prose full of
 # $VAR, backticks and ~, and an unquoted heredoc would expand all three,
 # turning instructions into whatever this shell happened to have set.
 #
-# Printed straight from a function rather than captured into a
-# variable: `read -d ''` would need one call per line or a bashism dash
-# rejects, and there is no reason to hold the text in memory when the
-# only thing ever done with it is print it.
-#
-# has_caveats() exists because the block may be empty, and an empty
+# has_post_install() exists because the block may be empty, and an empty
 # block must print nothing at all -- not a blank line.
-print_caveats() {
-  cat <<'UNFLAB_CAVEATS_EOF'
-{{CAVEATS}}
-UNFLAB_CAVEATS_EOF
+raw_post_install() {
+  cat <<'UNFLAB_POST_INSTALL_EOF'
+{{POST_INSTALL}}
+UNFLAB_POST_INSTALL_EOF
 }
 
-has_caveats() {
-  [ -n "$(print_caveats)" ]
+has_post_install() {
+  [ -n "$(raw_post_install)" ]
+}
+
+# Substitute this run's actual install paths into the notes.
+#
+# The notes tell people what to add to an rc file, so they have to name
+# the paths this install used. Printing ~/.local/... to someone who
+# passed --prefix /opt/x/bin hands them a line that is wrong in exactly
+# the way that gets pasted in anyway and then quietly does nothing.
+#
+# The rule, which a post-install file can rely on without knowing which
+# names are on the list:
+#
+#   $PREFIX      -> the value        (a name listed below)
+#   ${PREFIX}    -> the value
+#   $anyother    -> $anyother        (left exactly as written)
+#   \$NAME       -> $NAME            (escape consumed, ANY name)
+#   \\$PREFIX    -> \<value>         (\\ is a literal backslash and so
+#                                     no longer escapes the $)
+#
+# The escape works on any name rather than only the substituted ones, so
+# an author never needs to know the list to protect a `$`. The common
+# case needs no escape at all: `fpath=($DATADIR $fpath)` comes out with
+# the path filled in and $fpath untouched, because fpath is not a name
+# we substitute.
+#
+# One pass, consuming the whole run of backslashes before a $ so that
+# each is judged once: pairs collapse to one literal backslash, and a
+# leftover odd one escapes the reference. Separate substitutions could
+# not see a run as a unit, and mangled \\\$PREFIX.
+#
+# Substituted here rather than by letting the shell expand an unquoted
+# heredoc, which would take $fpath, backticks and ~ with it -- the
+# reason the heredoc is quoted at all.
+#
+# perl rather than sed, and not because sed cannot: doing it safely in
+# sed needs the replacement escaped for & and for the delimiter (a
+# --prefix containing & otherwise corrupts, silently, the very path it
+# was meant to produce), plus a round trip through a control character,
+# because POSIX sed cannot say "replace this except where a backslash
+# precedes it". perl says both directly, and an %ENV lookup means a
+# value is never reparsed as pattern syntax. /usr/bin/perl is in the
+# macOS base system exactly as sed is, and nothing here needs a module.
+#
+# The export sits inside a subshell so it cannot leak into the rest of
+# the script. It is also necessary: a `VAR=x func` prefix does not reach
+# a shell FUNCTION's own subprocesses, so perl would see an empty %ENV
+# and replace every name with nothing -- which still looks like working
+# code while quietly emitting "source /key-bindings.zsh".
+print_post_install() {
+  (
+    export PREFIX BASE MANDIR MAN5DIR MAN8DIR DOCDIR DATADIR CONFDIR \
+           UTIL VERSION
+    raw_post_install | perl -pe '
+      my %ok = map { $_ => 1 }
+        qw(PREFIX BASE MANDIR MAN5DIR MAN8DIR DOCDIR DATADIR CONFDIR
+           UTIL VERSION);
+      s{
+        (\\*) \$ (?: \{ (\w+) \} | (\w+) )
+      }{
+        my ($bs, $braced, $bare) = ($1, $2, $3);
+        my $n   = defined $braced ? $braced : $bare;
+        my $ref = defined $braced ? "\${$n}" : "\$$n";
+        my $lit = "\\" x (length($bs) / 2);
+        (length($bs) % 2)
+          ? $lit . $ref
+          : $lit . ($ok{$n} ? $ENV{$n} : $ref);
+      }gex;
+    '
+  )
 }
 
 
@@ -529,9 +595,9 @@ fi
 echo "$UTIL $VERSION installed ($installed_count file(s)) under $BASE."
 
 # After the summary, so the count is read first and the notes are the
-# last thing left on screen. Only on install: a caveat telling you how
+# last thing left on screen. Only on install: a note telling you how
 # to set something up is noise when you have just removed it.
-if has_caveats; then
+if has_post_install; then
   echo ""
-  print_caveats
+  print_post_install
 fi

@@ -80,5 +80,5 @@ unflab_stage() {
   # Shell integration does nothing until the user's shell is looking in
   # these directories, and zsh in particular needs fpath set before
   # compinit runs -- so say so rather than let it look like it failed.
-  install -m 644 "$RECIPE_DIR/caveats.txt" "$STAGE_DIR/.unflab/caveats.txt"
+  install -m 644 "$RECIPE_DIR/post-install.txt" "$STAGE_DIR/.unflab/post-install.txt"
 }
