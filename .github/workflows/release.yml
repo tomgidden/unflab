@@ -1,8 +1,6 @@
 name: Release
 
-# Cuts a release from a tag. Same per-recipe structure as the build
-# workflow, so one broken recipe fails alone rather than aborting a
-# serial `make all` and hiding the rest.
+# Tag to trigger a release
 #
 # The release job only runs if every recipe succeeded, so a partial
 # release can't be published.
@@ -50,27 +48,6 @@ jobs:
     runs-on: ${{ matrix.target.runner }}
     steps:
       - uses: actions/checkout@v7
-
-      - id: toolchains
-        run: |
-          set -euo pipefail
-          need() { grep -qh "^UNFLAB_TOOLCHAIN=.*\b$1\b" "utils/${{ matrix.recipe }}/recipe.sh" && echo true || echo false; }
-          echo "go=$(need go)" >> "$GITHUB_OUTPUT"
-          echo "cmake=$(need cmake)" >> "$GITHUB_OUTPUT"
-
-      # check-latest: see the same step in build.yml -- the runner
-      # image's cached Go drifts behind what a recipe's go.mod needs.
-      - if: steps.toolchains.outputs.go == 'true'
-        uses: actions/setup-go@v7
-        with:
-          go-version: "1.26"
-          check-latest: true
-          cache: false
-
-      - if: steps.toolchains.outputs.cmake == 'true'
-        uses: lukka/get-cmake@latest
-        with:
-          cmakeVersion: "3.31.6"
 
       # Skip the compile when nothing that determines the artefact has
       # changed. The key covers the recipe directory, the shared build
@@ -131,13 +108,15 @@ jobs:
           echo "hit=true" >> "$GITHUB_OUTPUT"
           echo "reused $n archive(s) from $prev"
 
-      - if: steps.cached.outputs.hit != 'true'
-        env:
-          UNFLAB_ATTEST_CHECK: "1"
-          UNFLAB_ATTEST_STRICT: "1"
-        run: scripts/build.sh ${{ matrix.recipe }}
-      - if: steps.cached.outputs.hit != 'true'
-        run: scripts/package.sh ${{ matrix.target.arch }}
+      # Toolchain setup, build and package all live in the composite
+      # action, so this workflow and build.yml cannot drift apart. On a
+      # cache hit the toolchains are still set up but nothing is built:
+      # dist/ already holds the previous release's archives.
+      - uses: ./.github/actions/build-recipe
+        with:
+          recipe: ${{ matrix.recipe }}
+          arch: ${{ matrix.target.arch }}
+          skip: ${{ steps.cached.outputs.hit == 'true' }}
 
       # The litmus test runs either way: a reused archive still has to
       # install and run on this runner. It is the acceptance test for

@@ -1,0 +1,67 @@
+name: Build a recipe
+description: >
+  Set up the toolchains a recipe declares, build it, and package the
+  result. Shared by build.yml and release.yml so the two cannot drift.
+
+inputs:
+  recipe:
+    description: Recipe name, i.e. a directory under utils/.
+    required: true
+  arch:
+    description: Arch triple to package for, e.g. arm64-apple-darwin.
+    required: true
+  skip:
+    description: >
+      When "true", set up toolchains but do not build or package. The
+      release workflow sets this once it has copied a previous
+      release's archives forward, which leaves dist/ already populated.
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    # Which toolchains this recipe needs, read from its own
+    # UNFLAB_TOOLCHAIN declaration, so adding a recipe never means
+    # editing a workflow. Toolchains not listed here (rust, autotools)
+    # are taken from the runner image as-is.
+    - id: toolchains
+      shell: bash
+      run: |
+        set -euo pipefail
+        need() { grep -qh "^UNFLAB_TOOLCHAIN=.*\b$1\b" "utils/${{ inputs.recipe }}/recipe.sh" && echo true || echo false; }
+        echo "go=$(need go)" >> "$GITHUB_OUTPUT"
+        echo "cmake=$(need cmake)" >> "$GITHUB_OUTPUT"
+
+    # check-latest: the runner image's cached Go drifts behind what a
+    # recipe's go.mod needs.
+    - if: steps.toolchains.outputs.go == 'true'
+      uses: actions/setup-go@v7
+      with:
+        go-version: "1.26"
+        check-latest: true
+        cache: false
+
+    # Pinned to 3.x deliberately: CMake 4 removed CMP0048's OLD
+    # behaviour, which bloaty's vendored capstone requires.
+    - if: steps.toolchains.outputs.cmake == 'true'
+      uses: lukka/get-cmake@latest
+      with:
+        cmakeVersion: "3.31.6"
+
+    # Attestation is checked on the runner, where gpg and the network
+    # are both available. Strict: evidence an upstream publishes must
+    # actually be fetchable, or the build fails rather than quietly
+    # downgrading.
+    - if: inputs.skip != 'true'
+      name: Build
+      shell: bash
+      env:
+        UNFLAB_ATTEST_CHECK: "1"
+        UNFLAB_ATTEST_STRICT: "1"
+      run: scripts/build.sh '${{ inputs.recipe }}'
+
+    - if: inputs.skip != 'true'
+      name: Package
+      shell: bash
+      run: scripts/package.sh '${{ inputs.arch }}'

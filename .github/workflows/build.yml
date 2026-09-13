@@ -40,10 +40,7 @@ jobs:
 
           # Build only what the diff can affect, on pushes as well as
           # pull requests. Merging a one-recipe bump used to rebuild
-          # all sixteen: not because any job is slow, but because
-          # sixteen jobs queue against a small macOS runner pool, and
-          # the run takes ten minutes of wall clock to do thirty
-          # seconds of useful work.
+          # all utils.
           #
           # scripts/affected.sh maps changed files to recipes, and is
           # where the reasoning lives -- what changes every artefact,
@@ -95,69 +92,32 @@ jobs:
   build:
     name: ${{ matrix.recipe }} (${{ matrix.target.arch }})
     needs: recipes
-    # An empty matrix is a docs or tooling change that affects no
-    # recipe. Without this the job fails on the empty matrix instead of
-    # being skipped; `all` treats a skip as success, so the required
-    # check still passes.
+    # An empty matrix is a docs or tooling change that affects no recipe.
     if: needs.recipes.outputs.matrix != '[]'
     strategy:
       fail-fast: false
       matrix:
         recipe: ${{ fromJSON(needs.recipes.outputs.matrix) }}
-        # runner and arch travel together; listing arch separately as
-        # well would produce a cross-product pairing each runner with
-        # both triples.
-        #
-        # Intel is disabled for now to halve runner cost and turnaround.
-        # Uncomment the second entry to build x86_64 again -- everything
-        # else (packaging, the gate, the litmus test, releases) is
-        # already arch-agnostic, so that is the only change needed.
         target:
           - runner: macos-latest
             arch: arm64-apple-darwin
+
+          ## Intel is disabled for now to halve runner cost and turnaround.
+          ## Now macos is deprecating Intel, the platforms are diverging so
+          ## far more likely to have unique bugs on each platform, which is
+          ## more trouble than it's worth.... just use Homebrew!
           # - runner: macos-15-intel
           #   arch: x86_64-apple-darwin
     runs-on: ${{ matrix.target.runner }}
     steps:
       - uses: actions/checkout@v7
 
-      - id: toolchains
-        run: |
-          set -euo pipefail
-          need() { grep -qh "^UNFLAB_TOOLCHAIN=.*\b$1\b" "utils/${{ matrix.recipe }}/recipe.sh" && echo true || echo false; }
-          echo "go=$(need go)" >> "$GITHUB_OUTPUT"
-          echo "cmake=$(need cmake)" >> "$GITHUB_OUTPUT"
-
-      # check-latest matters: without it setup-go takes whatever 1.26.x
-      # the runner image has cached, which drifts behind. doggo 1.4.0
-      # needs go >= 1.26.6 and the image was still on 1.26.5, so the
-      # build failed on a version that had been out for weeks.
-      - if: steps.toolchains.outputs.go == 'true'
-        uses: actions/setup-go@v7
+      # Toolchain setup, build and package all live in the composite
+      # action, so this workflow and release.yml cannot drift apart.
+      - uses: ./.github/actions/build-recipe
         with:
-          go-version: "1.26"
-          check-latest: true
-          cache: false
-
-      # Pinned to 3.x deliberately: CMake 4 removed CMP0048's OLD
-      # behaviour, which bloaty's vendored capstone requires.
-      - if: steps.toolchains.outputs.cmake == 'true'
-        uses: lukka/get-cmake@latest
-        with:
-          cmakeVersion: "3.31.6"
-
-      # Attestation is checked on the runner, where gpg and the network
-      # are both available. Strict: evidence an upstream publishes must
-      # actually be fetchable, or the build fails rather than quietly
-      # downgrading to the pin alone.
-      - name: Build
-        env:
-          UNFLAB_ATTEST_CHECK: "1"
-          UNFLAB_ATTEST_STRICT: "1"
-        run: scripts/build.sh ${{ matrix.recipe }}
-
-      - name: Package
-        run: scripts/package.sh ${{ matrix.target.arch }}
+          recipe: ${{ matrix.recipe }}
+          arch: ${{ matrix.target.arch }}
 
       # The gate again, against what will actually ship: packaging is
       # where a wrong file could creep in.
