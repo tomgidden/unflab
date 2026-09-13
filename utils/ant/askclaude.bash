@@ -3,6 +3,11 @@
 # Source this from ~/.bashrc; bash has no autoload, so it is defined
 # when the file is sourced rather than on first use.
 askclaude() {
+  if [ "$#" -eq 0 ]; then
+    printf 'usage: askclaude <question>\n' >&2
+    return 2
+  fi
+
   local message
   message=$(jq -n --arg content "$*" '{role: "user", content: $content}') || return
   ant messages create \

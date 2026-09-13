@@ -2,6 +2,11 @@ askclaude () {
   emulate -L zsh
   setopt local_options null_glob
 
+  if (( ! $# )); then
+    print -u2 'usage: askclaude <question>'
+    return 2
+  fi
+
   local message=$(jq -n --arg content "$*" '{role: "user", content: $content}')
   ant messages create \
     --model claude-haiku-4-5 \
