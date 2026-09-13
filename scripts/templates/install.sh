@@ -124,6 +124,21 @@ declined_stems=""
 
 # Resolve a manifest `kind` to its destination directory and to whether
 # --purge (rather than plain --uninstall) is what removes it.
+#
+# The three completion kinds write to each shell's conventional
+# directory and stop there -- nothing is sourced, enabled or added to
+# anyone's rc file. A user whose shell already looks in these places
+# gets completion for free, for every unflab package at once; one whose
+# shell doesn't sees no change at all. That is the whole contract, and
+# it is why these are separate kinds rather than one: the three shells
+# disagree about both the directory AND the filename (zsh wants `_fd`
+# and reads the `#compdef` tag inside it; bash and fish want `fd`).
+#
+# zsh has a trap worth knowing: its completion system only picks up a
+# directory that was in $fpath when `compinit` ran. Appending to $fpath
+# after that line -- the natural thing to write at the bottom of a
+# .zshrc -- silently does nothing. Packages that ship a zsh completion
+# say so in their post-install notes.
 dest_dir_for() {
   case "$1" in
     bin)        printf '%s' "$PREFIX" ;;
@@ -133,7 +148,9 @@ dest_dir_for() {
     doc)        printf '%s' "$DOCDIR" ;;
     data)       printf '%s' "$DATADIR" ;;
     config)     printf '%s' "$CONFDIR" ;;
-    completion) printf '%s' "$BASE/share/bash-completion/completions" ;; # XXX: zsh?
+    completion-bash) printf '%s' "$BASE/share/bash-completion/completions" ;;
+    completion-zsh)  printf '%s' "$BASE/share/zsh/site-functions" ;;
+    completion-fish) printf '%s' "$BASE/share/fish/vendor_completions.d" ;;
     *)          return 1 ;;
   esac
 }
@@ -227,8 +244,15 @@ UNFLAB_EOF
   # man5/man8 are pruned but man1 is not: man1 almost certainly holds
   # other tools' pages, while these two are usually ours alone. rmdir
   # refuses a non-empty directory either way, so this is safe.
+  # The completion directories are pruned on the same terms: rmdir
+  # refuses a non-empty one, so another package's (or the user's own)
+  # completions there keep it alive.
   for d in "$DATADIR"/* "$DATADIR" "$DOCDIR" "$CONFDIR" \
-           "$MAN5DIR" "$MAN8DIR"; do
+           "$MAN5DIR" "$MAN8DIR" \
+           "$BASE/share/bash-completion/completions" \
+           "$BASE/share/bash-completion" \
+           "$BASE/share/zsh/site-functions" "$BASE/share/zsh" \
+           "$BASE/share/fish/vendor_completions.d" "$BASE/share/fish"; do
     # If it exists, try to remove it. If it has contents, it'll fail.
     # If it doesn't exist, we don't mention it.
     [ -d "$d" ] && rmdir "$d" 2>/dev/null && echo "Removed empty $d"

@@ -95,7 +95,22 @@ recipe, not after CI tells you.
 
 `manifest.tsv` is tab-separated: `kind mode <path-in-package>
 <installed-name> <alias>`. Kinds are `bin`, `man1`, `man5`, `man8`,
-`doc`, `data`, `config`, `completion`. `-` means no alias.
+`doc`, `data`, `config`, `completion-bash`, `completion-zsh`,
+`completion-fish`. `-` means no alias.
+
+The completion kinds place a file in each shell's conventional
+directory (`share/bash-completion/completions`, `share/zsh/
+site-functions`, `share/fish/vendor_completions.d`) and do nothing
+else — no sourcing, no rc-file edits. A user whose shell already reads
+those paths gets completion for every unflab package at once; one whose
+shell doesn't sees no change. Name the file the way the shell expects:
+zsh wants `_<tool>` with a `#compdef` line inside, bash and fish want
+`<tool>`.
+
+Ship a completion when upstream provides one. If a package ships a zsh
+completion, its caveats should mention that `fpath` must be set before
+`compinit` runs — appending after that line silently does nothing, and
+it is the failure people actually hit.
 
 **A file listed but missing from the package is a fatal error on the
 user's machine, not in CI.** If the staged file list is anything but
