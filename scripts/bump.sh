@@ -5,13 +5,6 @@
 # Only UNFLAB_VERSION and UNFLAB_SOURCE are rewritten. The version
 # string also appears in prose ("bloaty 1.1 is from 2020"), and a
 # global replace would silently turn a true comment into a false one.
-# Updating prose is a judgement a human makes when merging.
-#
-# On its own this proves nothing about the new tarball: a hash computed
-# from a download can't attest to that download. What makes it
-# trustworthy is what happens next -- CI builds it, gates it and runs
-# the litmus test, and the diff is reviewed before it reaches main.
-# This writes a candidate, not a fact.
 
 set -euo pipefail
 
@@ -66,8 +59,7 @@ fi
 new_sha="$(shasum -a 256 "$tmp/$asset" | awk '{print $1}')"
 
 # A version that resolves to the byte-identical tarball means the URL
-# didn't actually change what was fetched -- a version scheme this
-# script guessed wrong about.
+# didn't actually change what was fetched
 if [ "$new_sha" = "$old_sha" ]; then
   echo "bump.sh: $NEW_VERSION has the same SHA-256 as $old_version" >&2
   echo "  the new URL is fetching the old tarball" >&2
@@ -77,11 +69,7 @@ fi
 echo "    sha256 $new_sha"
 
 # The hash above was computed from a tarball this script just
-# downloaded, so on its own it attests to nothing: a tampered download
-# would be recorded just as faithfully. If the upstream publishes a
-# signature or a checksum, check the new hash against it now -- that is
-# independent evidence, and the difference between a bump worth
-# reviewing and a bump worth refusing.
+# downloaded, so on its own it attests to nothing.
 attest_spec="$(sed -n "s/^UNFLAB_ATTEST=//p" "$RECIPE" | head -1 | tr -d "\"'")"
 if [ -n "$attest_spec" ]; then
   # shellcheck source=lib/attest.sh

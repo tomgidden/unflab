@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
+
 # affected.sh <changed-file>... -- which recipes a set of changed files
 # can affect. Prints recipe names, one per line, or nothing at all when
 # no build is warranted.
-#
-# CI used to answer this with "any file outside utils/ means rebuild
-# everything", which is safe but wasteful: a README or an AGENTS.md
-# push spent 21 macOS runners to reproduce 21 identical artefacts.
 #
 # The three answers, and why each file lands where it does:
 #
@@ -52,6 +49,7 @@ selected=""
 for f in "$@"; do
   [ -n "$f" ] || continue
   case "$f" in
+
     # A recipe's own directory: just that recipe.
     utils/*/*)
       selected="$selected $(printf '%s' "$f" | cut -d/ -f2)" ;;
@@ -61,13 +59,19 @@ for f in "$@"; do
       # Not sourced by any recipe -- build.sh sources it for every
       # build, so it is not scoped like the others.
       everything=1 ;;
+
     scripts/lib/*.sh)
       selected="$selected $(recipes_sourcing "$f" | tr '\n' ' ')" ;;
 
     # What every artefact is, or how every one is tested.
-    scripts/build.sh|scripts/package.sh|scripts/verify.sh|\
-    scripts/build-key.sh|scripts/litmus-test.sh|scripts/resolve.sh|\
-    scripts/templates/install.sh|.github/workflows/build.yml|\
+    scripts/build.sh|\
+    scripts/package.sh|\
+    scripts/verify.sh|\
+    scripts/build-key.sh|\
+    scripts/litmus-test.sh|\
+    scripts/resolve.sh|\
+    scripts/templates/install.sh|\
+    .github/workflows/build.yml|\
     scripts/affected.sh)
       # This script decides what gets built, so a change to it rebuilds
       # everything -- the one case where being wrong is unrecoverable
@@ -81,14 +85,25 @@ for f in "$@"; do
     # docs generator, prereqs, bump and check-updates likewise touch
     # no artefact -- verified with build-key.sh, which does not hash
     # any of them.
-    docs/*|site-extra/*|scripts/generate-docs.py|\
-    scripts/templates/get.sh|scripts/templates/unflab.sh|\
-    scripts/prereqs.sh|scripts/bump.sh|scripts/check-updates.sh|\
+    docs/*|\
+    site-extra/*|\
+    scripts/generate-docs.py|\
+    scripts/templates/get.sh|\
+    scripts/templates/unflab.sh|\
+    scripts/prereqs.sh|\
+    scripts/bump.sh|\
+    scripts/check-updates.sh|\
     scripts/install-local.sh|\
-    docmd.config.base.json|docmd.config.json|\
-    README.md|AGENTS.md|LICENSE|.gitignore|\
-    .github/workflows/pages.yml|.github/workflows/bump.yml|\
-    .github/workflows/check-updates.yml|.github/workflows/release.yml)
+    docmd.config.base.json|\
+    docmd.config.json|\
+    README.md|\
+    AGENTS.md|\
+    LICENSE|\
+    .gitignore|\
+    .github/workflows/pages.yml|\
+    .github/workflows/bump.yml|\
+    .github/workflows/check-updates.yml|\
+    .github/workflows/release.yml)
       : ;;
 
     # Anything unrecognised is assumed to matter.

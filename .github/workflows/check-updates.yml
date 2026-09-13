@@ -3,11 +3,9 @@ name: Check upstream versions
 # Nightly report of recipes whose upstream has released a newer version.
 #
 # It reports; it never bumps. A version change also means a new
-# UNFLAB_SHA256, and that pin is the only integrity check this project
-# has across upstreams that mostly don't sign their releases -- an
-# automated PR rewriting it would be a robot editing the very thing
-# that makes a tampered tarball detectable. So this opens an issue and
-# a human decides.
+# UNFLAB_SHA256, and that is the only integrity check this project
+# has across upstreams that mostly don't sign their releases. It's
+# the one bit we need to do manually to make sure tampering is noticed.
 
 on:
   schedule:
@@ -28,9 +26,7 @@ jobs:
 
       # GH_TOKEN raises the GitHub API rate limit from 60/hour
       # (unauthenticated, shared across every runner on the host) to
-      # 1000/hour for this repo -- more than enough for one recipe per
-      # request, and the difference between a reliable check and a
-      # nightly false alarm.
+      # 1000/hour for this repo.
       - id: check
         env:
           GH_TOKEN: ${{ github.token }}
@@ -49,9 +45,6 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # One open issue, updated in place. A new issue every night for
-      # the same four outdated recipes would train everyone to ignore
-      # it; the report is a standing status, not an event.
       - name: Open or update the tracking issue
         env:
           GH_TOKEN: ${{ github.token }}
@@ -98,9 +91,6 @@ jobs:
               --body "$body"
           fi
 
-      # A failed check means the checker is broken -- an upstream moved
-      # its download page, say -- which is a real defect even though no
-      # build is affected. Fail after the issue is written, not before.
       - if: steps.check.outputs.status != '0'
         run: |
           echo "one or more version checks failed" >&2

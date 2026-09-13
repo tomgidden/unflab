@@ -2,13 +2,6 @@ name: Deploy docs to GitHub Pages
 
 # Rebuilds the site on pushes to main and whenever a release is
 # published.
-#
-# Prose comes from the working tree, so a docs fix goes live on push.
-# The download-facing data -- index.txt and the per-package versions --
-# is taken from the latest release's assets instead, because Pages
-# deploys on every push while archives only publish on a tag. Without
-# that split the site advertises packages added since the last tag and
-# `get` 404s on them.
 
 on:
   push:

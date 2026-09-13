@@ -68,10 +68,7 @@ mkdir -p "$BUILD_ROOT"
 # The original package's tarball to fetch.
 tarball="$BUILD_ROOT/$(basename "${UNFLAB_SOURCE%%\?*}")"
 
-# Try mirrors when the primary is unreachable. ftp.gnu.org timed out on a
-# CI runner while the other architecture's job downloaded the same file
-# fine, so a transient outage there shouldn't fail a build. We rely on
-# UNFLAB_SHA256 later to verify the tarball's checksum.
+# Try mirrors when the primary is unreachable.
 sources=("$UNFLAB_SOURCE")
 case "$UNFLAB_SOURCE" in
   https://ftp.gnu.org/gnu/*)
@@ -92,8 +89,7 @@ for src in "${sources[@]}"; do
     fetched=1
     # Which mirror actually served it: the detached signature has to
     # be fetched from beside the tarball we got, not from the URL we
-    # first tried. Falling back to a mirror and then verifying against
-    # ftp.gnu.org's signature would check the wrong pair of files.
+    # first tried.
     fetched_from="$src"
     break
   fi
