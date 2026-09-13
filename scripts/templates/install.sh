@@ -22,6 +22,44 @@
 
 set -eu
 
+# Terminal colours: default to none
+TTY_OK=0
+ESC=; RED=; GREEN=; YELLOW=; BLUE=; MAGENTA=; CYAN=
+NORMAL=; BOLD=; NO_BOLD=; DIM=; ITALIC=; NO_ITALIC=; UNDERLINE=; NO_UNDERLINE=
+RESET_COLOR=; RESET_STYLE=; RESET=
+CO="<"; CC=">";
+ELLIP="..."
+NELLIP="   "
+
+# Interactivity is decided by *opening* /dev/tty, not by testing it.
+# Probed in a subshell first because some shells treat a failed
+# redirection on `exec` as fatal to the whole script.
+if (exec 3<>/dev/tty) 2>/dev/null; then
+  exec 3<>/dev/tty
+  TTY_OK=1
+fi
+
+# If we found a terminal, use colours.
+if [ "$TTY_OK" = 1 ]; then
+  ESC=$(printf '\033')
+  RED="$ESC[91m";      GREEN="$ESC[92m";   YELLOW="$ESC[93m"
+  BLUE="$ESC[94m";     MAGENTA="$ESC[95m"; CYAN="$ESC[96m"
+  BOLD="$ESC[1m";      NO_BOLD="$ESC[22m"
+  DIM="$ESC[2m";       NORMAL="$ESC[22m"
+  ITALIC="$ESC[3m";    NO_ITALIC="$ESC[23m"
+  UNDERLINE="$ESC[4m"; NO_UNDERLINE="$ESC[24m"
+  RESET_COLOR="$ESC[39;49;9m"; RESET_STYLE="$ESC[29m"; RESET="$ESC[0m"
+  CO="‹"; CC="›"; ELLIP="…"; NELLIP=" "
+fi
+
+SELF="${0##*/}"
+ERROR="$RED"
+FLAG="$GREEN"
+COMMAND="$YELLOW"
+PARAM="$BOLD$CYAN"
+OPTIONAL="$DIM$CYAN"
+COMMENT="$DIM # $ITALIC"
+
 UTIL="{{UTIL}}"
 VERSION="{{VERSION}}"
 
@@ -29,13 +67,14 @@ PREFIX="${HOME}/.local/bin"
 WANT_PLAIN=1
 WANT_QUARANTINE_CLEAR=0
 ACTION=install
-PATH_MODE=ask       # ask | yes | no
+PATH_MODE=ask # ask | yes | no
 
 # Manifest:
 # Field order: kind <TAB> mode <TAB> source <TAB> dest <TAB> plain
 # `-` means "not applicable". See scripts/templates/install.sh in the
 # unflab repo for the format's definition.
-MANIFEST=$(cat <<'UNFLAB_MANIFEST_EOF'
+MANIFEST=$(
+  cat <<'UNFLAB_MANIFEST_EOF'
 {{MANIFEST}}
 UNFLAB_MANIFEST_EOF
 )
@@ -118,8 +157,9 @@ has_post_install() {
 # code while quietly emitting "source /key-bindings.zsh".
 print_post_install() {
   (
+    echo "$ITALIC"
     export PREFIX BASE MANDIR MAN5DIR MAN8DIR DOCDIR DATADIR CONFDIR \
-           UTIL VERSION
+      UTIL VERSION
     raw_post_install | perl -pe '
       my %ok = map { $_ => 1 }
         qw(PREFIX BASE MANDIR MAN5DIR MAN8DIR DOCDIR DATADIR CONFDIR
@@ -136,9 +176,9 @@ print_post_install() {
           : $lit . ($ok{$n} ? $ENV{$n} : $ref);
       }gex;
     '
+    echo "$RESET"
   )
 }
-
 
 # Arguments
 
@@ -148,16 +188,46 @@ print_post_install() {
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --prefix)     PREFIX="$2"; shift 2 ;;
-    --prefix=*)   PREFIX="${1#--prefix=}"; shift ;;
-    --uninstall)  ACTION=uninstall; shift ;;
-    --purge)      ACTION=purge; shift ;;
-    --no-plain)   WANT_PLAIN=0; shift ;;
-    --quarantine) WANT_QUARANTINE_CLEAR=1; shift ;;
-    --path)       PATH_MODE=yes; shift ;;
-    --no-path)    PATH_MODE=no; shift ;;
-    -h|--help)    sed -n '/^# Usage:/,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
-    *)            echo "install.sh: unknown option: $1" >&2; exit 2 ;;
+  --prefix)
+    PREFIX="$2"
+    shift 2
+    ;;
+  --prefix=*)
+    PREFIX="${1#--prefix=}"
+    shift
+    ;;
+  --uninstall)
+    ACTION=uninstall
+    shift
+    ;;
+  --purge)
+    ACTION=purge
+    shift
+    ;;
+  --no-plain)
+    WANT_PLAIN=0
+    shift
+    ;;
+  --quarantine)
+    WANT_QUARANTINE_CLEAR=1
+    shift
+    ;;
+  --path)
+    PATH_MODE=yes
+    shift
+    ;;
+  --no-path)
+    PATH_MODE=no
+    shift
+    ;;
+  -h | --help)
+    sed -n '/^# Usage:/,/^$/p' "$0" | sed 's/^# \{0,1\}//'
+    exit 0
+    ;;
+  *)
+    echo "$COMMAND$SELF$RESET: ${ERROR}unknown option: $1$RESET" >&2
+    exit 2
+    ;;
   esac
 done
 
@@ -207,23 +277,23 @@ declined_stems=""
 # say so in their post-install notes.
 dest_dir_for() {
   case "$1" in
-    bin)        printf '%s' "$PREFIX" ;;
-    man1)       printf '%s' "$MANDIR" ;;
-    man5)       printf '%s' "$MAN5DIR" ;;
-    man8)       printf '%s' "$MAN8DIR" ;;
-    doc)        printf '%s' "$DOCDIR" ;;
-    data)       printf '%s' "$DATADIR" ;;
-    config)     printf '%s' "$CONFDIR" ;;
-    completion-bash) printf '%s' "$BASE/share/bash-completion/completions" ;;
-    completion-zsh)  printf '%s' "$BASE/share/zsh/site-functions" ;;
-    # Same directory as completion-zsh, and deliberately: site-functions
-    # is where autoloadable zsh functions live, a completion being one
-    # kind of those. A separate kind because the manifest should say
-    # which it is -- a completion is picked up by compinit, a plain
-    # function needs `autoload -Uz <name>` and does nothing without it.
-    function-zsh)    printf '%s' "$BASE/share/zsh/site-functions" ;;
-    completion-fish) printf '%s' "$BASE/share/fish/vendor_completions.d" ;;
-    *)          return 1 ;;
+  bin) printf '%s' "$PREFIX" ;;
+  man1) printf '%s' "$MANDIR" ;;
+  man5) printf '%s' "$MAN5DIR" ;;
+  man8) printf '%s' "$MAN8DIR" ;;
+  doc) printf '%s' "$DOCDIR" ;;
+  data) printf '%s' "$DATADIR" ;;
+  config) printf '%s' "$CONFDIR" ;;
+  completion-bash) printf '%s' "$BASE/share/bash-completion/completions" ;;
+  completion-zsh) printf '%s' "$BASE/share/zsh/site-functions" ;;
+  # Same directory as completion-zsh, and deliberately: site-functions
+  # is where autoloadable zsh functions live, a completion being one
+  # kind of those. A separate kind because the manifest should say
+  # which it is -- a completion is picked up by compinit, a plain
+  # function needs `autoload -Uz <name>` and does nothing without it.
+  function-zsh) printf '%s' "$BASE/share/zsh/site-functions" ;;
+  completion-fish) printf '%s' "$BASE/share/fish/vendor_completions.d" ;;
+  *) return 1 ;;
   esac
 }
 
@@ -254,7 +324,8 @@ remove_own_file() {
 }
 
 remove_own_link() {
-  target="$1"; expect="$2"
+  target="$1"
+  expect="$2"
   # Not a symlink (missing, or a real file someone else owns) -> not ours.
   [ -L "$target" ] || {
     [ -e "$target" ] && echo "Kept $target (not ours: real file, not our symlink)"
@@ -264,8 +335,11 @@ remove_own_link() {
   # If it's a symlink, check it points at the expected thing.
   link=$(readlink "$target")
   case "$link" in
-    "$expect"|*/"$expect") ;;
-    *) echo "Kept $target (not ours: points at $link)"; return 0 ;;
+  "$expect" | */"$expect") ;;
+  *)
+    echo "Kept $target (not ours: points at $link)"
+    return 0
+    ;;
   esac
 
   # Remove it.
@@ -275,7 +349,6 @@ remove_own_link() {
 }
 
 # Uninstall / purge
-# -----------------
 
 if [ "$ACTION" = uninstall ] || [ "$ACTION" = purge ]; then
 
@@ -287,7 +360,7 @@ if [ "$ACTION" = uninstall ] || [ "$ACTION" = purge ]; then
   while IFS='	' read -r kind mode src dest plain; do
 
     # Skip empty lines and comments.
-    case "$kind" in ''|\#*) continue ;; esac
+    case "$kind" in '' | \#*) continue ;; esac
 
     # Get the destination directory for this kind.
     dir=$(dest_dir_for "$kind") || continue
@@ -320,11 +393,11 @@ UNFLAB_EOF
   # refuses a non-empty one, so another package's (or the user's own)
   # completions there keep it alive.
   for d in "$DATADIR"/* "$DATADIR" "$DOCDIR" "$CONFDIR" \
-           "$MAN5DIR" "$MAN8DIR" \
-           "$BASE/share/bash-completion/completions" \
-           "$BASE/share/bash-completion" \
-           "$BASE/share/zsh/site-functions" "$BASE/share/zsh" \
-           "$BASE/share/fish/vendor_completions.d" "$BASE/share/fish"; do
+    "$MAN5DIR" "$MAN8DIR" \
+    "$BASE/share/bash-completion/completions" \
+    "$BASE/share/bash-completion" \
+    "$BASE/share/zsh/site-functions" "$BASE/share/zsh" \
+    "$BASE/share/fish/vendor_completions.d" "$BASE/share/fish"; do
     # If it exists, try to remove it. If it has contents, it'll fail.
     # If it doesn't exist, we don't mention it.
     [ -d "$d" ] && rmdir "$d" 2>/dev/null && echo "Removed empty $d"
@@ -340,18 +413,19 @@ UNFLAB_EOF
   exit 0
 fi
 
-
 # Install
-# -------
 
 # Read the manifest, one line at a time.
 while IFS='	' read -r kind mode src dest plain; do
 
   # Skip empty lines and comments.
-  case "$kind" in ''|\#*) continue ;; esac
+  case "$kind" in '' | \#*) continue ;; esac
 
   # Get the destination directory for this kind.
-  dir=$(dest_dir_for "$kind") || { echo "install.sh: unknown kind '$kind'" >&2; exit 1; }
+  dir=$(dest_dir_for "$kind") || {
+    echo "install.sh: unknown kind '$kind'" >&2
+    exit 1
+  }
 
   # If the dest isn't set (or is -), skip it.
   [ "$dest" = "-" ] || [ -z "$dest" ] && continue
@@ -415,9 +489,10 @@ while IFS='	' read -r kind mode src dest plain; do
       # about -- otherwise we'd document a tool the user isn't running.
       stem=${plain%%.*}
       case "$declined_stems" in
-        *" $stem "*)
-          echo "Skipped $dir/$plain (plain '$stem' not claimed)"
-          continue ;;
+      *" $stem "*)
+        echo "Skipped $dir/$plain (plain '$stem' not claimed)"
+        continue
+        ;;
       esac
     fi
 
@@ -431,9 +506,7 @@ done <<UNFLAB_EOF
 $MANIFEST
 UNFLAB_EOF
 
-
 # Quarantine
-# ----------
 
 # Binaries here aren't signed with an Apple Developer ID or notarized, so
 # if this package arrived via a browser (or anything else LaunchServices
@@ -456,10 +529,10 @@ if command -v xattr >/dev/null 2>&1; then
   while IFS='	' read -r kind mode src dest plain; do
 
     # Skip empty lines and comments.
-    case "$kind" in ''|\#*) continue ;; esac
+    case "$kind" in '' | \#*) continue ;; esac
 
-    [ "$kind" = bin ] || continue   # Only quarantine binaries
-    [ "$dest" = "-" ] && continue   # Skip if no destination
+    [ "$kind" = bin ] || continue # Only quarantine binaries
+    [ "$dest" = "-" ] && continue # Skip if no destination
 
     # If the binary is quarantined, note it.
     if xattr -p com.apple.quarantine "$PREFIX/$dest" >/dev/null 2>&1; then
@@ -482,18 +555,20 @@ UNFLAB_EOF
 
   # If we found any, tell the user.
   if [ -n "$quarantined" ]; then
-    echo ""
+    echo "$BOLD$MAGENTA"
     echo "Note: macOS has quarantined the installed binary, and Gatekeeper"
-    echo "      will block it. Re-run with --quarantine, or clear it yourself:"
-    echo ""
-    for q in $quarantined; do echo "          xattr -d com.apple.quarantine '$PREFIX/$q'"; done
+    echo "      will block it. Re-run with $YELLOW--quarantine$RESET, or clear it yourself:"
+    echo "$RESET"
+
+    for q in $quarantined; do
+      echo "          ${COMMAND}xattr ${FLAG}-d com.apple.quarantine ${PARAM}'$PREFIX/$q'$RESET"
+    done
+
     echo ""
   fi
 fi
 
-
 # PATH management
-# ---------------
 
 # Only PATH needs managing: macOS's `man` derives its own search path from
 # PATH, finding <prefix>/../share/man automatically, so a working PATH
@@ -502,8 +577,8 @@ fi
 
 # If the PATH contains the prefix, it's good.
 case ":$PATH:" in
-  *":$PREFIX:"*) PATH_ALREADY=1 ;;
-  *)             PATH_ALREADY=0 ;;
+*":$PREFIX:"*) PATH_ALREADY=1 ;;
+*) PATH_ALREADY=0 ;;
 esac
 
 # If PATH doesn't include our prefix, and we installed something, offer to fix it.
@@ -512,38 +587,20 @@ if [ "$PATH_ALREADY" = 0 ] && [ "$installed_count" -gt 0 ]; then
   # Pick the rc file for the user's login shell, not for whatever shell
   # happens to be running this script.
   case "${SHELL:-}" in
-    */zsh)  RC="${ZDOTDIR:-$HOME}/.zshrc" ;;
-    */bash) RC="$HOME/.bash_profile" ;;
-    */fish) RC="$HOME/.config/fish/config.fish" ;;
-    *)      RC="$HOME/.profile" ;;
+  */zsh) RC="${ZDOTDIR:-$HOME}/.zshrc" ;;
+  */bash) RC="$HOME/.bash_profile" ;;
+  */fish) RC="$HOME/.config/fish/config.fish" ;;
+  *) RC="$HOME/.profile" ;;
   esac
 
   # Prepare the line that may (or may not) be added.
   case "$RC" in
-    */config.fish) LINE="fish_add_path $PREFIX" ;;
-    *)             LINE="export PATH=\"$PREFIX:\$PATH\"" ;;
+  */config.fish) LINE="fish_add_path $PREFIX" ;;
+  *) LINE="export PATH=\"$PREFIX:\$PATH\"" ;;
   esac
 
   echo ""
-  echo "$PREFIX is not on your PATH, so '$UTIL' won't be found by name yet."
-
-  # If we're in 'ask' mode, then see if we can get an interactive terminal.
-  #
-  # Interactivity is decided by *opening* /dev/tty, not by testing it.
-  # Piped to `sh`, stdin is the script, so [ -t 0 ] is always false; and
-  # [ -r /dev/tty ] passes even with no controlling terminal, where the
-  # write then fails. Opening it read-write fails cleanly in both cases.
-  TTY_OK=0
-  if [ "$PATH_MODE" = ask ]; then
-    # Probed in a subshell first because some shells treat a failed
-    # redirection on `exec` as fatal to the whole script.
-    if (exec 3<>/dev/tty) 2>/dev/null; then
-      # Honestly, this does reek somewhat of burning sulfur and
-      # sacrificial offerings, but apparently it works.
-      exec 3<>/dev/tty
-      TTY_OK=1
-    fi
-  fi
+  echo "${PARAM}$PREFIX${RESET} ${WARNING}is not on your PATH, so ${COMMAND}'$UTIL'$RESET ${WARNING}won't be found by name yet.$RESET"
 
   # Ask the user if they want to add the line to the rc file.
   DO_PATH=0
@@ -562,7 +619,7 @@ if [ "$PATH_ALREADY" = 0 ] && [ "$installed_count" -gt 0 ]; then
     IFS= read -r reply <&3 || reply=""
 
     # If they said yes, we're good.
-    case "$reply" in y|Y|yes|YES) DO_PATH=1 ;; esac
+    case "$reply" in y | Y | yes | YES) DO_PATH=1 ;; esac
   fi
 
   # If they decided to add the line, do so.
@@ -573,7 +630,7 @@ if [ "$PATH_ALREADY" = 0 ] && [ "$installed_count" -gt 0 ]; then
       echo ""
       echo "# added by Unflab, initially for $UTIL - https://unflab.app"
       echo "$LINE"
-    } >> "$RC"
+    } >>"$RC"
     echo "Added to $RC. Run:  . $RC   (or open a new terminal)"
 
   else
@@ -587,7 +644,6 @@ if [ "$PATH_ALREADY" = 0 ] && [ "$installed_count" -gt 0 ]; then
 fi
 
 # Summary
-# -------
 
 echo ""
 if [ -n "$skipped_plain" ]; then

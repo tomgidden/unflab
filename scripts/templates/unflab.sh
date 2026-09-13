@@ -18,7 +18,7 @@
 # Everything it can do, that line can do.
 
 SWITCH="${1:-}"
-CMD=$(basename "$0")
+SELF="${0##*/}"
 
 set -eu
 
@@ -68,13 +68,13 @@ case $SWITCH in
   ""|-h|--help)
     cat <<USAGE
 
-$UNDERLINE$BOLD$CMD$NORMAL : ${ITALIC}install and remove standalone macOS utilities$RESET
+$UNDERLINE$BOLD$SELF$NORMAL : ${ITALIC}install and remove standalone macOS utilities$RESET
 
   ${UNDERLINE}Commands:$RESET
-    $COMMAND$CMD$RESET             $NAMES ${COMMENT}download and install$RESET
-    $COMMAND$CMD$RESET $FLAG--uninstall $NAMES ${COMMENT}remove$RESET
-    $COMMAND$CMD$RESET $FLAG--purge     $NAMES ${COMMENT}remove, including config files$RESET
-    $COMMAND$CMD$RESET $FLAG--list$RESET $NELLIP                     ${COMMENT}list available package names$RESET
+    $COMMAND$SELF$RESET             $NAMES ${COMMENT}download and install$RESET
+    $COMMAND$SELF$RESET $FLAG--uninstall $NAMES ${COMMENT}remove$RESET
+    $COMMAND$SELF$RESET $FLAG--purge     $NAMES ${COMMENT}remove, including config files$RESET
+    $COMMAND$SELF$RESET $FLAG--list$RESET $NELLIP                     ${COMMENT}list available package names$RESET
 
   ${UNDERLINE}Options:$RESET
     $FLAG--prefix $PARAM${CO}dir${CC}$RESET ${COMMENT}install somewhere else (usually $BOLD$DEFAULT_PATH$NORMAL$DIM)$RESET
