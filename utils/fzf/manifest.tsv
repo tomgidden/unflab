@@ -1,0 +1,13 @@
+bin	755	bin/fzf	fzf	-
+bin	755	bin/fzf-tmux	fzf-tmux	-
+bin	755	bin/fzf-preview.sh	fzf-preview.sh	-
+man1	644	share/man/man1/fzf.1	fzf.1	-
+man1	644	share/man/man1/fzf-tmux.1	fzf-tmux.1	-
+data	644	shell/key-bindings.bash	key-bindings.bash	-
+data	644	shell/key-bindings.zsh	key-bindings.zsh	-
+data	644	shell/key-bindings.fish	key-bindings.fish	-
+data	644	shell/completion.bash	completion.bash	-
+data	644	shell/completion.zsh	completion.zsh	-
+data	644	shell/fzf.vim	fzf.vim	-
+doc	644	README.md	README.md	-
+doc	644	LICENSE	LICENSE	-
