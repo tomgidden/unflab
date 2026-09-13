@@ -34,6 +34,10 @@ have been considered and rejected already, and the reason is recorded
 there. If you reject one, add it there rather than leaving the next
 person to redo the analysis.
 
+Then look at the corresponding Homebrew recipe if there is one. This
+will be a guide on what will be delivered, but treat it just as a
+reference, not a recommendation.
+
 Then decide what class it is. This is the honest part of the pitch and
 it goes in the recipe's header comment:
 
