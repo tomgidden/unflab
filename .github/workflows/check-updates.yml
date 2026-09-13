@@ -1,6 +1,13 @@
 name: Check upstream versions
 
 # Nightly report of recipes whose upstream has released a newer version.
+#
+# It reports; it never bumps. A version change also means a new
+# UNFLAB_SHA256, and that pin is the only integrity check this project
+# has across upstreams that mostly don't sign their releases -- an
+# automated PR rewriting it would be a robot editing the very thing
+# that makes a tampered tarball detectable. So this opens an issue and
+# a human decides.
 
 on:
   schedule:
