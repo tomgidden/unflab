@@ -8,16 +8,11 @@ name: Deploy docs to GitHub Pages
 # is taken from the latest release's assets instead, because Pages
 # deploys on every push while archives only publish on a tag. Without
 # that split the site advertises packages added since the last tag and
-# `get` 404s on them, which is exactly what happened to webi, btop,
-# shfmt and socat.
+# `get` 404s on them.
 
 on:
   push:
-    branches: [main]
-  # Kept for a release published by hand or by a PAT. It does NOT fire
-  # for our own release job: GitHub raises no workflow events for
-  # anything done with the default GITHUB_TOKEN, so release.yml
-  # dispatches this workflow explicitly once it has published.
+    branches: [main]   # For manual releases or by a PAT, NOT our own release job
   release:
     types: [published]
   workflow_dispatch: {}
@@ -37,9 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # PyYAML is only used to validate the generated frontmatter --
-      # the generator runs without it, just without that check, so this
-      # is deliberately a separate, non-fatal step.
+      # PyYAML is only used to validate the generated frontmatter
       - name: Install PyYAML (frontmatter validation)
         run: python3 -m pip install --quiet pyyaml || true
 
@@ -95,13 +88,8 @@ jobs:
         with:
           path: ./site
 
-  # Deploying needs Pages enabled, which GitHub does not offer for
-  # private repositories on all plans. The build job above still runs on
-  # every push -- it's a genuine check that the generator, the bootstrap
-  # substitution and docmd all work -- but the deploy is skipped rather
-  # than failing the workflow until the repo is public (or Pages is
-  # otherwise enabled). Flip UNFLAB_PAGES to '1' as a repo variable to
-  # turn deployment on.
+  # Deploying needs Pages enabled.
+  # Flip UNFLAB_PAGES to '1' as a repo variable to turn deployment on.
   deploy:
     if: vars.UNFLAB_PAGES == '1'
     environment:

@@ -1,6 +1,6 @@
 name: Propose upstream bumps
 
-# Turns the nightly version report into something you can act on.
+# Turns the nightly version report into something administrators can act on.
 #
 # For each outdated recipe: rewrite it to the new version, re-pin the
 # SHA-256, check it against whatever the upstream publishes, and open a
@@ -9,11 +9,8 @@ name: Propose upstream bumps
 # strict mode -- with no extra wiring. A green PR is a bump that has
 # been proven to build; a red one is a bump that shouldn't be merged.
 #
-# Nothing here can ship a package. Branches are namespaced bump/* and
-# never tagged v*, so release.yml cannot fire on them; merging to main
-# stays a human act, and releasing stays a separate human act after
-# that.
-
+# This won't actually ship it though, as branches are namespaced bump/*
+# and not tagged v*
 on:
   schedule:
     # Shortly after check-updates, so the report exists first. Both
