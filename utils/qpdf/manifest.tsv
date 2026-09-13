@@ -6,3 +6,5 @@ man1	644	share/man/man1/fix-qdf.1	fix-qdf.1	-
 man1	644	share/man/man1/zlib-flate.1	zlib-flate.1	-
 doc	644	README.md	README.md	-
 doc	644	LICENSE	LICENSE	-
+completion-zsh	644	completion/_qpdf	_qpdf	-
+completion-bash	644	completion/qpdf.bash	qpdf	-

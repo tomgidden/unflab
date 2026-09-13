@@ -35,14 +35,28 @@ directory. `typst fonts` shows what it found.
 
 ## Shell completions
 
-Not installed, but generated on demand:
+Completions for zsh, bash and fish are installed to each shell's
+conventional directory. Nothing is sourced and no rc file is edited, so
+whether they take effect depends on your shell already looking there:
 
-```sh
-typst completions zsh > ~/.zfunc/_typst
-typst completions bash > /usr/local/etc/bash_completion.d/typst
-```
+- **bash** — `~/.local/share/bash-completion/completions`, found
+  automatically by bash-completion 2.x.
+- **fish** — `~/.local/share/fish/vendor_completions.d`, found
+  automatically.
+- **zsh** — `~/.local/share/zsh/site-functions`, which is *not* in the
+  default `fpath`. Add it in `~/.zshrc`, above the line that runs
+  `compinit`:
 
-`typst completions --help` lists the shells it knows.
+  ```sh
+  fpath=(~/.local/share/zsh/site-functions $fpath)
+  autoload -Uz compinit && compinit
+  ```
+
+  Appending to `fpath` after `compinit` has run silently does nothing —
+  that is the mistake people actually make.
+
+`typst completions <shell>` still prints them on demand for any shell
+clap supports, if you want one this package doesn't install.
 
 ## Updating
 

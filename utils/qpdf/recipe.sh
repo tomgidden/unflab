@@ -110,4 +110,19 @@ unflab_stage() {
 
   install -m 644 LICENSE.txt "$STAGE_DIR/LICENSE"
   install -m 644 "$RECIPE_DIR/README.md" "$STAGE_DIR/README.md"
+
+  # Shipped in the source tree, with a completions/README.md that
+  # explicitly asks packagers to install them wherever their system
+  # keeps such things. bash and zsh only -- upstream ships no fish
+  # completion, so none is invented here.
+  #
+  # These cover `qpdf` alone; fix-qdf and zlib-flate have no completion
+  # upstream and take little more than a filename anyway.
+  install -d "$STAGE_DIR/completion"
+  install -m 644 completions/zsh/_qpdf "$STAGE_DIR/completion/_qpdf"
+  install -m 644 completions/bash/qpdf "$STAGE_DIR/completion/qpdf.bash"
+
+  # Completions are inert until the shell is looking in those
+  # directories, and zsh needs fpath set before compinit runs.
+  install -m 644 "$RECIPE_DIR/caveats.txt" "$STAGE_DIR/.unflab/caveats.txt"
 }

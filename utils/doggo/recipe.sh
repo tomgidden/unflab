@@ -52,4 +52,29 @@ unflab_stage() {
   install -m 644 config-cli-sample.toml "$STAGE_DIR/config/doggo.toml.sample"
 
   # No man page upstream -- `doggo --help` is the documentation.
+
+  # Completions come from the binary we just built, so the flags they
+  # offer and the flags it accepts cannot drift apart. Named for the
+  # shell that reads them: zsh wants `_doggo` with its `#compdef` line,
+  # bash and fish want `doggo`.
+  install -d "$STAGE_DIR/completion"
+  ./doggo completions zsh  > "$STAGE_DIR/completion/_doggo"
+  ./doggo completions bash > "$STAGE_DIR/completion/doggo.bash"
+  ./doggo completions fish > "$STAGE_DIR/completion/doggo.fish"
+
+  # An empty completion would install fine and do nothing, so check
+  # rather than trust: `completions` is an undocumented subcommand and
+  # could go away in a release without anything else noticing.
+  for f in "$STAGE_DIR/completion/_doggo" \
+           "$STAGE_DIR/completion/doggo.bash" \
+           "$STAGE_DIR/completion/doggo.fish"; do
+    [ -s "$f" ] || {
+      echo "doggo: $f is empty -- did \`doggo completions\` change?" >&2
+      return 1
+    }
+  done
+
+  # Completions are inert until the shell is looking in those
+  # directories, and zsh needs fpath set before compinit runs.
+  install -m 644 "$RECIPE_DIR/caveats.txt" "$STAGE_DIR/.unflab/caveats.txt"
 }

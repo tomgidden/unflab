@@ -38,6 +38,26 @@ qpdf --check suspect.pdf
 ./install.sh --uninstall
 ```
 
+## Shell completions
+
+Completions for zsh and bash are installed to each shell's conventional
+directory. Nothing is sourced and no rc file is edited, so whether they
+take effect depends on your shell already looking there:
+
+- **bash** — `~/.local/share/bash-completion/completions`, found
+  automatically by bash-completion 2.x.
+- **zsh** — `~/.local/share/zsh/site-functions`, which is *not* in the
+  default `fpath`. Add it in `~/.zshrc`, above the line that runs
+  `compinit`:
+
+  ```sh
+  fpath=(~/.local/share/zsh/site-functions $fpath)
+  autoload -Uz compinit && compinit
+  ```
+
+  Appending to `fpath` after `compinit` has run silently does nothing —
+  that is the mistake people actually make.
+
 ## About this build
 
 `brew install qpdf` pulls in **jpeg-turbo** and **openssl@3** (which

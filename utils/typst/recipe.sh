@@ -153,13 +153,17 @@ unflab_stage() {
   }
   install -m 644 "$TYPST_ARTIFACTS"/typst*.1 "$STAGE_DIR/share/man/man1/"
 
-  # Shell completions are generated too, but not staged. The installer
-  # has a `completion` kind that only knows bash's directory, and
-  # nothing in the collection exercises it yet; shipping four shells'
-  # worth of completions through a path this project has never tested
-  # would be inventing an install layout on typst's behalf. `typst
-  # completions <shell>` prints them on demand, which is upstream's own
-  # answer, and the README points at it.
+  # build.rs generates completions for every shell clap knows about;
+  # the three this project installs are staged. (Earlier versions of
+  # this recipe shipped none, because the installer had only a `bash`
+  # completion kind -- that is fixed, and fd exercises the same path.)
+  #
+  # Named for the shell that reads them: zsh wants `_typst` with its
+  # `#compdef` line, bash and fish want `typst`.
+  install -d "$STAGE_DIR/completion"
+  install -m 644 "$TYPST_ARTIFACTS/_typst" "$STAGE_DIR/completion/_typst"
+  install -m 644 "$TYPST_ARTIFACTS/typst.bash" "$STAGE_DIR/completion/typst.bash"
+  install -m 644 "$TYPST_ARTIFACTS/typst.fish" "$STAGE_DIR/completion/typst.fish"
 
   # The manifest is generated rather than committed because the man
   # pages are: build.rs emits one per subcommand, so a release that
@@ -175,8 +179,15 @@ unflab_stage() {
       name="$(basename "$page")"
       printf 'man1\t644\tshare/man/man1/%s\t%s\t-\n' "$name" "$name"
     done
+    printf 'completion-zsh\t644\tcompletion/_typst\t_typst\t-\n'
+    printf 'completion-bash\t644\tcompletion/typst.bash\ttypst\t-\n'
+    printf 'completion-fish\t644\tcompletion/typst.fish\ttypst.fish\t-\n'
     printf 'doc\t644\tREADME.md\tREADME.md\t-\n'
     printf 'doc\t644\tLICENSE\tLICENSE\t-\n'
     printf 'doc\t644\tNOTICE\tNOTICE\t-\n'
   } > "$STAGE_DIR/.unflab/manifest.tsv"
+
+  # Completions land in each shell's directory but are inert until the
+  # shell is looking there -- and zsh needs fpath set before compinit.
+  install -m 644 "$RECIPE_DIR/caveats.txt" "$STAGE_DIR/.unflab/caveats.txt"
 }
