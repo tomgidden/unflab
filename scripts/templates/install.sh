@@ -216,6 +216,12 @@ dest_dir_for() {
     config)     printf '%s' "$CONFDIR" ;;
     completion-bash) printf '%s' "$BASE/share/bash-completion/completions" ;;
     completion-zsh)  printf '%s' "$BASE/share/zsh/site-functions" ;;
+    # Same directory as completion-zsh, and deliberately: site-functions
+    # is where autoloadable zsh functions live, a completion being one
+    # kind of those. A separate kind because the manifest should say
+    # which it is -- a completion is picked up by compinit, a plain
+    # function needs `autoload -Uz <name>` and does nothing without it.
+    function-zsh)    printf '%s' "$BASE/share/zsh/site-functions" ;;
     completion-fish) printf '%s' "$BASE/share/fish/vendor_completions.d" ;;
     *)          return 1 ;;
   esac

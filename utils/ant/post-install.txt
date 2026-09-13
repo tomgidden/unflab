@@ -1,0 +1,37 @@
+ant needs credentials before it will do anything. Either:
+
+  ant auth login                      log in via the browser (OAuth)
+  export ANTHROPIC_API_KEY=sk-ant-... or set a key yourself
+
+`ant --help` lists what it can do; `man ant` is the full reference.
+
+The askclaude helper is installed but not enabled -- one-shot
+questions from the command line, without writing the JSON by hand:
+
+  askclaude why is my zsh startup slow
+
+Switch it on in whichever shell you use:
+
+  zsh   In ~/.zshrc, ABOVE any line that runs compinit. Unlike a
+        completion, a function must be named before it autoloads:
+
+          fpath=($BASE/share/zsh/site-functions $fpath)
+          autoload -Uz askclaude
+
+        If another unflab package already added the fpath line, you
+        need it only once.
+
+  bash  In ~/.bashrc:
+
+          source $DATADIR/askclaude.bash
+
+  fish  In ~/.config/fish/config.fish:
+
+          source $DATADIR/askclaude.fish
+
+        Or copy it to ~/.config/fish/functions/askclaude.fish, where
+        fish autoloads it by filename.
+
+All three need jq, which this package does not install:
+
+  curl -fsSL https://unflab.app/get | sh -s -- jq

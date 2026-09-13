@@ -100,7 +100,7 @@ recipe, not after CI tells you.
 `manifest.tsv` is tab-separated: `kind mode <path-in-package>
 <installed-name> <alias>`. Kinds are `bin`, `man1`, `man5`, `man8`,
 `doc`, `data`, `config`, `completion-bash`, `completion-zsh`,
-`completion-fish`. `-` means no alias.
+`completion-fish`, `function-zsh`. `-` means no alias.
 
 The completion kinds place a file in each shell's conventional
 directory (`share/bash-completion/completions`, `share/zsh/
@@ -110,6 +110,15 @@ those paths gets completion for every unflab package at once; one whose
 shell doesn't sees no change. Name the file the way the shell expects:
 zsh wants `_<tool>` with a `#compdef` line inside, bash and fish want
 `<tool>`.
+
+`function-zsh` writes to the same `site-functions` directory as
+`completion-zsh`, because that is where autoloadable zsh functions
+live — a completion being one kind of those. It is a separate kind so
+the manifest says which it is: a completion is picked up by `compinit`,
+while a plain function does nothing until `autoload -Uz <name>` names
+it. `utils/ant` ships `askclaude` that way. The filename matters —
+zsh autoload resolves by it — so the installed name must be exactly the
+function name, with no extension.
 
 Ship a completion when upstream provides one. If a package ships a zsh
 completion, its post-install notes should mention that `fpath` must be

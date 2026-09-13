@@ -1,0 +1,7 @@
+bin	755	bin/ant	ant	-
+man1	644	share/man/man1/ant.1	ant.1	-
+function-zsh	644	functions/askclaude	askclaude	-
+data	644	functions/askclaude.bash	askclaude.bash	-
+data	644	functions/askclaude.fish	askclaude.fish	-
+doc	644	README.md	README.md	-
+doc	644	LICENSE	LICENSE	-
