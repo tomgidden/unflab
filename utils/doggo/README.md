@@ -47,7 +47,7 @@ hard to get.
 
 - Home: https://doggo.mrkaran.dev/
 - Source: https://github.com/mr-karan/doggo
-- Version: 1.3.0
+- Version: 1.4.0
 - Licence: GPL-3.0-or-later (see `LICENSE`)
 
 `doggo` is Karan Sharma's work. unflab only compiles and packages it.
