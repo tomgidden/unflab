@@ -50,13 +50,27 @@ for pkg in "${packages[@]}"; do
     [[ -f "$stage/$src" ]] || { echo "package.sh: $pkg manifest names missing file: $src" >&2; exit 1; }
   done < "$manifest"
 
-  # Generate install.sh with the manifest inlined. sed's `r` reads the
-  # file in verbatim, preserving the tabs that separate its fields; an
-  # s/// substitution can't insert multi-line content and would mangle
-  # any metacharacters in it.
+  # Optional post-install notes. Most packages need none, so an absent
+  # file means an empty block, not an error -- /dev/null gives sed a
+  # readable file to splice in either way.
+  #
+  # This exists because fzf installs shell files that do nothing until
+  # the user sources them: without a note the install looks like it
+  # worked while Ctrl-R is silently missing.
+  caveats="$stage/.unflab/caveats.txt"
+  [[ -f "$caveats" ]] || caveats=/dev/null
+
+  # Generate install.sh with the manifest and caveats inlined. sed's `r`
+  # reads the file in verbatim, preserving the tabs that separate the
+  # manifest's fields; an s/// substitution can't insert multi-line
+  # content and would mangle any metacharacters in it. Caveat prose is
+  # full of characters ($, `, ~, quotes) that make that a certainty
+  # rather than a risk, which is why it gets the same treatment.
   install_sh="$stage/install.sh"
   sed -e "/{{MANIFEST}}/r $manifest" \
       -e "/{{MANIFEST}}/d" \
+      -e "/{{CAVEATS}}/r $caveats" \
+      -e "/{{CAVEATS}}/d" \
       -e "s|{{UTIL}}|$pkg|g" \
       -e "s|{{VERSION}}|$version|g" \
       "$TEMPLATE" > "$install_sh"

@@ -40,6 +40,39 @@ MANIFEST=$(cat <<'UNFLAB_MANIFEST_EOF'
 UNFLAB_MANIFEST_EOF
 )
 
+# Post-install notes, printed after a successful install. Empty for most
+# packages.
+#
+# Read with `read -d ''` rather than the `$(cat <<'EOF' ... )` this
+# first used, because that construct cannot survive an apostrophe. The
+# shell tokenises the whole of a $( ) BEFORE the heredoc body is taken
+# literally, so one `'` in ordinary prose -- "the package's
+# completions" -- opens a quote that never closes and the generated
+# installer fails to parse. package.sh's `sh -n` check caught it, but
+# only because a recipe happened to contain one; fzf's caveats have no
+# apostrophe and passed by luck.
+#
+# The quoted delimiter is still load-bearing: this is prose full of
+# $VAR, backticks and ~, and an unquoted heredoc would expand all three,
+# turning instructions into whatever this shell happened to have set.
+#
+# Printed straight from a function rather than captured into a
+# variable: `read -d ''` would need one call per line or a bashism dash
+# rejects, and there is no reason to hold the text in memory when the
+# only thing ever done with it is print it.
+#
+# has_caveats() exists because the block may be empty, and an empty
+# block must print nothing at all -- not a blank line.
+print_caveats() {
+  cat <<'UNFLAB_CAVEATS_EOF'
+{{CAVEATS}}
+UNFLAB_CAVEATS_EOF
+}
+
+has_caveats() {
+  [ -n "$(print_caveats)" ]
+}
+
 
 # Arguments
 
@@ -470,3 +503,11 @@ if [ -n "$skipped_plain" ]; then
 fi
 
 echo "$UTIL $VERSION installed ($installed_count file(s)) under $BASE."
+
+# After the summary, so the count is read first and the notes are the
+# last thing left on screen. Only on install: a caveat telling you how
+# to set something up is noise when you have just removed it.
+if has_caveats; then
+  echo ""
+  print_caveats
+fi

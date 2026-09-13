@@ -108,6 +108,22 @@ staged.
 Ship the licence. If upstream has a `NOTICE` (Apache-2.0 requires it),
 ship that too.
 
+### Post-install notes
+
+A recipe that stages `$STAGE_DIR/.unflab/caveats.txt` gets its contents
+printed after a successful install, and only on install — never on
+uninstall. Most packages want none; the file is optional and absent
+means nothing is printed.
+
+It is for the case where installing is not the same as working.
+`utils/fzf` is the example: its shell integration installs to
+`share/fzf/` and does nothing at all until the user sources it, so
+without a note the install reports success while `Ctrl-R` is silently
+missing. Homebrew's `caveats` covers the same ground.
+
+Keep it to what the user must *do*. It is printed on every install, so
+prose that merely describes the package belongs in the README.
+
 ### Verifying before you push
 
     make <name>.prereqs      what building it needs, and what's missing
