@@ -41,11 +41,11 @@ unflab_build() {
 }
 
 unflab_stage() {
-  install -d "$STAGE_DIR/bin" "$STAGE_DIR/themes"
+  install -d "$STAGE_DIR/bin" "$STAGE_DIR/themes" "$STAGE_DIR/doc"
   install -m 755 bin/btop "$STAGE_DIR/bin/btop"
   install -m 644 LICENSE "$STAGE_DIR/LICENSE"
   install -m 644 "$RECIPE_DIR/README.md" "$STAGE_DIR/README.md"
-  install -m 644 manpage.md "$STAGE_DIR/manpage.md"
+  install -m 644 manpage.md "$STAGE_DIR/doc/manpage.md"
 
   # The themes btop reads at run time. Not config: the user doesn't edit
   # these, and a --purge shouldn't be needed to remove them.
@@ -57,24 +57,26 @@ unflab_stage() {
     # If we have pandoc (eg. macos runner), use it to generate the man page
     pandoc -s -t man -o "$STAGE_DIR/share/man/man1/btop.1" manpage.md
   fi
+
   # Else, No man page: upstream ships manpage.md and generates the roff with
   # lowdown at build time. Pulling in a Markdown-to-roff converter for
   # one page would be exactly the dependency bloat this project exists
   # to avoid, and `btop --help` covers the flags.
 
+	MANIFEST="$STAGE_DIR/.unflab/manifest.tsv"
+
   # 41 theme rows would be a lot to hand-maintain and keep in step with
-  # upstream, so the manifest is generated from what was just staged.
-  {
-    printf 'bin\t755\tbin/btop\tbtop\t-\n'
-    for t in "$STAGE_DIR"/themes/*.theme; do
-      n="$(basename "$t")"
-      printf 'data\t644\tthemes/%s\tthemes/%s\t-\n' "$n" "$n"
-    done
-    if [ -f "$STAGE_DIR/share/man/man1/btop.1" ]; then
-      printf 'man1\t644\tshare/man/man1/btop.1\tbtop.1\t-\n'
-    fi
-    printf 'doc\t644\tmanpage.md\tmanpage.md\t-\n'
-    printf 'doc\t644\tREADME.md\tREADME.md\t-\n'
-    printf 'doc\t644\tLICENSE\tLICENSE\t-\n'
-  } > "$STAGE_DIR/.unflab/manifest.tsv"
+  # upstream, so the manifest is amended from what was just staged.
+	for t in "$STAGE_DIR"/themes/*.theme; do
+		n="$(basename "$t")"
+		printf 'data\t644\tthemes/%s\tthemes/%s\t-\n' "$n" "$n" >> "$MANIFEST"
+	done
+
+	if [ -f "$STAGE_DIR/share/man/man1/btop.1" ]; then
+		printf 'man1\t644\tshare/man/man1/btop.1\tbtop.1\t-\n' >> "$MANIFEST"
+	fi
+  
+	if [ -s "$MANIFEST" ]; then
+		sort -u -o "$MANIFEST" "$MANIFEST"
+	fi
 }

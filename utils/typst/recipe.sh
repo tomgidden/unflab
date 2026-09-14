@@ -165,26 +165,14 @@ unflab_stage() {
   install -m 644 "$TYPST_ARTIFACTS/typst.bash" "$STAGE_DIR/completion/typst.bash"
   install -m 644 "$TYPST_ARTIFACTS/typst.fish" "$STAGE_DIR/completion/typst.fish"
 
-  # The manifest is generated rather than committed because the man
-  # pages are: build.rs emits one per subcommand, so a release that
-  # adds or removes one changes the list. A committed manifest naming a
-  # page that no longer exists would not fail here -- it would fail on
-  # the user's machine, because install.sh treats a file missing from
-  # the package as fatal. Listing what was actually staged keeps the
-  # two in step.
+  # The manifest is amended because build.rs emits one man page per subcommand,
+  # so a release that adds or removes one changes the list.
   {
-    printf 'bin\t755\tbin/typst\ttypst\t-\n'
     for page in "$STAGE_DIR/share/man/man1"/*.1; do
       [ -f "$page" ] || continue
       name="$(basename "$page")"
       printf 'man1\t644\tshare/man/man1/%s\t%s\t-\n' "$name" "$name"
     done
-    printf 'completion-zsh\t644\tcompletion/_typst\t_typst\t-\n'
-    printf 'completion-bash\t644\tcompletion/typst.bash\ttypst\t-\n'
-    printf 'completion-fish\t644\tcompletion/typst.fish\ttypst.fish\t-\n'
-    printf 'doc\t644\tREADME.md\tREADME.md\t-\n'
-    printf 'doc\t644\tLICENSE\tLICENSE\t-\n'
-    printf 'doc\t644\tNOTICE\tNOTICE\t-\n'
   } > "$STAGE_DIR/.unflab/manifest.tsv"
 
   # Completions land in each shell's directory but are inert until the

@@ -243,16 +243,24 @@ for PKG in $UNFLAB_PACKAGES; do
   } > "$STAGE_DIR/.unflab/provenance"
 
   # Per-package manifest: <name>.tsv if the recipe emits several, else
-  # the recipe's single manifest.tsv.
+  # the recipe's single manifest.tsv.  So we can amend it, we'll add
+  # to it rather than clobber it, and then sort.
+
+  MANIFEST="$STAGE_DIR/.unflab/manifest.tsv"
+
   if [[ -f "$RECIPE_DIR/$PKG.tsv" ]]; then
-    cp "$RECIPE_DIR/$PKG.tsv" "$STAGE_DIR/.unflab/manifest.tsv"
-
+    cat "$RECIPE_DIR/$PKG.tsv" >> "$MANIFEST"
   elif [[ -f "$RECIPE_DIR/manifest.tsv" ]]; then
-    cp "$RECIPE_DIR/manifest.tsv" "$STAGE_DIR/.unflab/manifest.tsv"
+    cat "$RECIPE_DIR/manifest.tsv" >> "$MANIFEST"
+  fi
 
-  elif [[ -f "$STAGE_DIR/.unflab/manifest.tsv" ]]; then
+  if [[ -f "$MANIFEST" ]]; then
     : # recipe generated it itself (coreutils does)
+  fi
 
+	# If it already exists, sort it and remove duplicates, saving over-the-top
+  if [[ -s "$MANIFEST" ]]; then
+    sort -u "$MANIFEST" -o "$MANIFEST"
   else
     echo "build.sh: no manifest for $PKG" >&2; exit 1
   fi

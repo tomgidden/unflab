@@ -1,0 +1,7 @@
+bin	755	bin/typst	typst	-
+completion-zsh	644	completion/_typst	_typst	-
+completion-bash	644	completion/typst.bash	typst	-
+completion-fish	644	completion/typst.fish	typst.fish	-
+doc	644	README.md	README.md	-
+doc	644	LICENSE	LICENSE	-
+doc	644	NOTICE	NOTICE	-
