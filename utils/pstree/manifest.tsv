@@ -1,0 +1,4 @@
+bin	755	bin/pstree	pstree	-
+man1	644	share/man/man1/pstree.1	pstree.1	-
+doc	644	README.md	README.md	-
+doc	644	LICENSE	LICENSE	-

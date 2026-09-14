@@ -31,7 +31,7 @@
 SHELL := /bin/bash
 ROOT  := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 
-UTILS := $(notdir $(wildcard $(ROOT)/utils/*))
+UTILS := $(sort $(foreach d,$(wildcard $(ROOT)/utils/*),$(if $(wildcard $(d)/.),$(notdir $(d)))))
 ARCH  ?= $(shell uname -m)-apple-darwin
 PREFIX ?= $(HOME)/.local/bin
 
