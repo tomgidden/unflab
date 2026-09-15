@@ -177,7 +177,7 @@ SRC_DIR="${UNFLAB_SRC_DIR:-$BUILD_ROOT/${UNFLAB_NAME}-${UNFLAB_VERSION}}"
   # If there's only one line, it's the one we want.
   [[ ${#dirs[@]} -eq 1 ]] && SRC_DIR="${dirs[0]}"
 
-  # XXX: This might be turn out to be too limited; I expect at some point 
+  # XXX: This might be turn out to be too limited; I expect at some point
   # we'll add a new utility that has a weird directory structure.
 }
 
@@ -249,18 +249,22 @@ for PKG in $UNFLAB_PACKAGES; do
   MANIFEST="$STAGE_DIR/.unflab/manifest.tsv"
 
   if [[ -f "$RECIPE_DIR/$PKG.tsv" ]]; then
+    echo >> "$MANIFEST"
     cat "$RECIPE_DIR/$PKG.tsv" >> "$MANIFEST"
   elif [[ -f "$RECIPE_DIR/manifest.tsv" ]]; then
+    echo >> "$MANIFEST"
     cat "$RECIPE_DIR/manifest.tsv" >> "$MANIFEST"
   fi
 
-  if [[ -f "$MANIFEST" ]]; then
-    : # recipe generated it itself (coreutils does)
+  # Copy any manifest created during `unflab_stage` into the target manifest.
+  if [[ -f "$STAGE_DIR/manifest.tsv" ]]; then
+    echo >> "$MANIFEST"
+    cat "$STAGE_DIR/manifest.tsv" >> "$MANIFEST"
   fi
 
-	# If it already exists, sort it and remove duplicates, saving over-the-top
+  # If it already exists, sort it and remove duplicates, saving over-the-top
   if [[ -s "$MANIFEST" ]]; then
-    sort -u "$MANIFEST" -o "$MANIFEST"
+    sort -R -u "$MANIFEST" -o "$MANIFEST"
   else
     echo "build.sh: no manifest for $PKG" >&2; exit 1
   fi
