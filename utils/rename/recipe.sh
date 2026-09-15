@@ -4,11 +4,11 @@
 # a little Gist that Tom wrote.
 
 UNFLAB_NAME=rename
-UNFLAB_VERSION=1.25.0
+UNFLAB_VERSION=1.601
 UNFLAB_HOMEPAGE=http://plasmasturm.org/code/rename
 UNFLAB_LICENSE="Artistic-1.0-Perl OR GPL-1.0-or-later"
 UNFLAB_SOURCE=https://github.com/ap/rename/archive/refs/tags/v1.601.tar.gz
-UNFLAB_CHECK=github:ap/rename
+UNFLAB_CHECK=github-tags:ap/rename
 UNFLAB_SHA256=e8fd67b662b9deddfb6a19853652306f8694d7959dfac15538a9b67339c87af4
 UNFLAB_TOOLCHAIN="perl"
 UNFLAB_CLASS=1
