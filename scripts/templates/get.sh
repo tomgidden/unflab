@@ -20,76 +20,226 @@
 # Uses only tools present on a stock macOS: curl, tar, shasum, mktemp,
 # uname, sed.
 
-set -eu
-
-BASE_URL="{{BASE_URL}}"
-RELEASE_URL="{{RELEASE_URL}}"
-
-usage() { cat <<END_USAGE
-
-  curl -fsSL $BASE_URL/get | sh -s -- ‹utility› [utility ...] [options]
-
-Options are passed to each package's installer:
-  --prefix DIR    install somewhere other than ~/.local/bin
-  --uninstall     remove a previously installed utility
-  --purge         remove it and its config files
-  --keep          keep the downloaded packages after installing
-  --no-plain      don't create unprefixed name symlinks (eg. timeout -> gtimeout)
-  --no-helper     don't install the 'unflab' helper script
-  --list          list the available utilities
-  --help          show this help
-
-Available utilities: $BASE_URL  (use --list to see them)
-
-END_USAGE
-}
-
-# Error helpers
-warn() { echo "unflab: $*" >&2 ; }
-warn_np() { echo "$*" >&2 ; }
-throw() { echo "unflab: $*" >&2; exit 1; }
+#set -e
+#set -u
 
 # A leading `--` may or may not survive: sh/dash pass it through, zsh eats it.
 [ $# -gt 0 ] && [ "$1" = "--" ] && shift
 
 # Parse the arguments into flags and utility names, with special handling for --prefix
 utils=""
-want_prefix=   # Have we just seen --prefix, so need to consume the next arg?
-purge=         # Remove a previously installed utility and its config files
-uninstall=     # Remove a previously installed utility
-keep=          # Keep the downloaded packages after installing
-list=          # List the available utilities
-no_plain=      # Don't create unprefixed name symlinks
-no_helper=     # Don't install "unflab" (explicitly requested, or during --uninstall / --purge)
-no_checksum=   # Don't verify the checksums of the downloaded archives (not documented)
-prefix=""
+no_color=     # Don't use colours
+want_prefix=  # Have we just seen --prefix, so need to consume the next arg?
+keep=         # Keep the downloaded packages after installing
+no_plain=     # Don't create unprefixed name symlinks
+no_helper=    # Don't install "unflab" (explicitly requested, or during --uninstall / --purge)
+no_checksum=  # Don't verify the checksums of the downloaded archives (not documented)
+need_usage=   # As we're parsing before usage() is defined, we just flag it for now.
+bad_args=     # Anything that didn't parse
+bad_prefix=   # A prefix set was attempted but failed (probably `-p -x` or similar)
+no_more_args= # We've seen the -- and are done parsing flags
+finished=     # We've seen the last arg and are done parsing all args
+prefix=       # Non-default location to install (usually $HOME/.local)
+questionable= # Was 'install'/'uninstall'/etc. included as a bare word?  Could be a brew habit
+cmds=         # List of command flags
 
-for arg in "$@"; do
-
-  # If we just had --prefix, the next arg is the prefix
-  if [ "$want_prefix" = 1 ]; then
-    prefix="$arg"
-    want_prefix=0
-    continue
+interpret_arg() {
+  arg="$1"
+  if [[ "$want_prefix" == "1" || "$no_more_args" == "1" ]]; then
+    case "$arg" in
+      "") finished=1; return ;;
+      -*)
+        if   [ "$want_prefix" ]; then
+          bad_prefix="$arg"
+        else
+          bad_args="$bad_args $arg"
+        fi
+        ;;
+      *)
+        if   [ "$want_prefix" ]; then
+          prefix="$arg"; return
+        elif [ ! "$no_more_args" ]; then
+          case "$arg" in
+            ginstall)  utils="$utils install" ;;
+            install)   questionable+=",install"; return ;;
+            uninstall) questionable+=",uninstall"; return ;;
+            purge)     questionable+=",purge"; return ;;
+            list)      questionable+=",list"; return ;;
+          esac
+        fi
+        utils="$utils $arg"
+        ;;
+    esac
+    want_prefix=
+  else
+    case "$arg" in
+      --)               no_more_args=1 ;;
+      "")               finished=1; break;;
+      install)          questionable+=",install" ;;
+      uninstall)        questionable+=",uninstall" ;;
+      purge)            questionable+=",purge" ;;
+      list)             questionable+=",list" ;;
+      ginstall)         questionable=${questionable//,install/}; utils="$utils install" ;;
+      -h | --help)      need_usage=1; break ;;
+      -i | --install)   cmds+=",install" ;;
+      -u | --uninstall) cmds+=",uninstall" ;;
+      -x | --purge)     cmds+=",purge" ;;
+      -l | --list)      cmds+=",list" ;;
+      -p | --prefix)    want_prefix=1 ;;
+           --prefix=*)  prefix="${arg#--prefix=}" ;;
+      -k | --keep)      keep=1 ;;
+      -c | --no-color | --no-colour) no_color=1 ;;
+      -k | --no-plain)  no_plain=1 ;;
+      --no-checksum)    no_checksum=1 ;;
+      -*)               bad_args="$bad_args $arg" ;;
+      *)                utils="$utils $arg" ;;
+    esac
   fi
+}
 
-  case "$arg" in
-    --help)        usage; exit 0 ;;
-    --prefix)      want_prefix=1 ;;
-    --prefix=*)    prefix="${arg#--prefix=}" ;;
-    --install)     ;;
-    --purge)       purge=1; uninstall=1; no_helper=1 ;;
-    --uninstall)   uninstall=1; no_helper=1 ;;
-    --list)        list=1; no_helper=1 ;;
-    --no-helper)   no_helper=1 ;;
-    --keep)        keep=1 ;;
-    --no-plain)    no_plain=1 ;;
-    --no-checksum) no_checksum=1 ;;
-    -*)            throw "unknown flag: $arg" ;;
-    *)             utils="$utils $arg" ;;
-  esac
+set -- $*
+while :; do
+  interpret_arg $1
+  shift
+  [ "$finished" = 1 ] && break
 done
 
+# Terminal colours: default to none
+ESC=; RESET=; BLACK=; RED=
+GREEN=; YELLOW=; BLUE=;
+MAGENTA=; CYAN=; WHITE=;
+DIM=; NORMAL=; BOLD=; NO_BOLD=;
+ITALIC=; NO_ITALIC=; UNDERLINE=; NO_UNDERLINE=
+CO="<"; CC=">"; ELLIP="..."; NELLIP="   "
+EM1="‘"; EM0="’"
+
+# Interactivity is decided by *opening* /dev/tty, not by testing it.
+# Probed in a subshell first because some shells treat a failed
+# redirection on `exec` as fatal to the whole script.
+if [[ ! "$no_color" ]]; then
+  no_color=1
+  if (exec 3<>/dev/tty) 2>/dev/null; then
+    exec 3<>/dev/tty
+    tty_ok=1
+    no_color=
+  fi
+fi
+
+# If we want colours and have found a terminal, set them.
+if [ ! "$no_color" ]; then
+  ESC=$(printf '\033');
+  RESET="$ESC[0m";			BLACK="$ESC[90m";			RED="$ESC[91m";
+  GREEN="$ESC[92m";			YELLOW="$ESC[93m";		BLUE="$ESC[94m";
+  MAGENTA="$ESC[95m";		CYAN="$ESC[96m";			WHITE="$ESC[97m";
+  DIM="$ESC[2m";				NORMAL="$ESC[22m";
+  BOLD="$ESC[1m";				NO_BOLD="$ESC[22m";
+  ITALIC="$ESC[3m";			NO_ITALIC="$ESC[23m";
+  UNDERLINE="$ESC[4m";	NO_UNDERLINE="$ESC[24m";
+  CO="‹";		CC="›";			ELLIP="…";		NELLIP=" "
+  EM1="$EM1$ITALIC$UNDERLINE"  EM0="$NO_UNDERLINE$NO_ITALIC$EM0"
+fi
+  
+SELF="${0##*/}"
+WARNING="$MAGENTA"
+ERROR="$RED"
+FLAG="$GREEN"
+COMMAND="$YELLOW"
+PARAM="$BOLD$CYAN"
+OPTIONAL="$DIM$CYAN"
+COMMENT="$RESET$DIM # $ITALIC"
+
+UTIL="{{UTIL}}"
+VERSION="{{VERSION}}"
+BASE_URL="{{BASE_URL}}"
+RELEASE_URL="{{RELEASE_URL}}"
+
+# Error helpers
+warn() {      echo "${CYAN}unflab: ${YELLOW}$*${RESET}" >&2; }
+error() { 	  echo "${CYAN}unflab: ${RED}$*${RESET}" >&2; }
+warn_np() {   echo "${YELLOW}$*${RESET}" >&2; }
+error_np() { 	echo "${RED}$*${RESET}" >&2; }
+throw() {
+  echo "\n${CYAN}unflab: ${RED}$*${RESET}\n" >&2
+  exit 1
+}
+
+usage() {
+  cat <<END_USAGE
+
+$UNDERLINE${BOLD}unflab$NORMAL : ${ITALIC}install and remove standalone macOS utilities$RESET
+${DIM}{{BASE_URL}}$RESET
+
+  ${YELLOW}curl $FLAG-fsSL $CYAN$BASE_URL/get $COMMAND| sh $FLAG-s -- [options] $CYAN${CO}utility${CC} [${CO}utility${CC} $ELLIP]$RESET
+
+${UNDERLINE}Options are passed to each package's installer:${NO_UNDERLINE}
+
+  $FLAG-h $RESET|$FLAG --help          ${COMMENT}show this help$RESET
+  $FLAG-i $RESET|$FLAG --install       ${COMMENT}install one or more utilities$RESET
+  $FLAG-u $RESET|$FLAG --uninstall     ${COMMENT}remove one or more previously installed utilities$RESET
+  $FLAG-x $RESET|$FLAG --purge         ${COMMENT}remove it and its config files$RESET
+  $FLAG-l $RESET|$FLAG --list          ${COMMENT}list the available utilities$RESET
+  $FLAG-p $RESET|$FLAG --prefix ${PARAM}DIR    ${COMMENT}install somewhere other than $prefix$RESET
+  $FLAG-k $RESET|$FLAG --keep          ${COMMENT}keep the downloaded packages after installing$RESET
+  $FLAG     --no-plain      ${COMMENT}don't create unprefixed name symlinks (eg. timeout -> gtimeout)$RESET
+  $FLAG     --no-helper     ${COMMENT}don't install the 'unflab' helper script$RESET
+
+${UNDERLINE}Available utilities:${RESET} ${MAGENTA}$BASE_URL${RESET} ${COMMENT}(use --list to see them)${RESET}
+END_USAGE
+}
+
+
+# Deal with bare commands, and 'install' being cited without being clear it's ‹ginstall›
+clean_questionable() {
+  IFS=',' read -ra q_cmds <<<"${questionable#,}"
+  if [[ "${questionable}" =~ ",install" ]]; then
+    q_bad="install"; q_suggest="ginstall";
+    need_usage="${EM1}install$EM0 specified as a bare word; did you mean the package ${EM1}ginstall${EM0}, or did you mean ${EM1}--install$EM0?"
+    return 1
+  fi
+
+  q_cmds=("${q_cmds[@]:1}")
+  q_head=${questionable%,*}
+  q_head=${q_head#,*}
+  q_tail=${questionable##*,}
+  case "${#q_cmds[*]}" in
+    0) q_bad=; q_suggest=; return 0 ;;
+    1) q_bad="$EM1${q_tail}$EM0"; q_suggest="$EM1--$q_cmds$EM0" ;;
+    2) q_bad="$EM1${q_head//,}$EM0 and $EM1${q_tail}$EM0"; q_suggest="$EM1--$q_cmds$EM0" ;;
+    *) q_bad="$EM1${q_head//,/$EM0, $EM1}$EM0 and $EM1${q_tail}$EM0"; q_suggest="$EM1--$q_cmds$EM0" ;;
+  esac
+  need_usage="bare commands like $q_bad are not valid; did you mean $q_suggest?"
+  return 1
+}
+
+clean_questionable
+
+
+clean_commands() {
+  commands="${cmds#,}"
+  IFS=',' read -ra c_cmds <<< "${commands}"
+  c_head=${commands%,*}
+  c_head=${c_head#,*}
+  c_tail=${commands##*,}
+  case "${#c_cmds[@]}" in
+    0) command=install; return 0 ;;
+    1) command=$c_head; return 0 ;;
+    2) c_bad="$EM1${c_head//,}$EM0 and $EM1${c_tail}$EM0"; c_suggest="$EM1--$c_cmds$EM0" ;;
+    *) c_bad="$EM1${c_head//,/$EM0, $EM1}$EM0 and $EM1${c_tail}$EM0"; c_suggest="$EM1--$c_cmds$EM0" ;;
+  esac
+  need_usage="you can only specify one of $c_bad"
+  return 1
+}
+
+clean_commands
+
+case "$command" in
+  "") ;;
+  install)   install=1 ;;
+  uninstall) uninstall=1; no_helper=1 ;;
+  purge)     purge=1; uninstall=1; no_helper=1 ;;
+  list)      list=1; no_helper=1 ;;
+  *)         need_usage="Unknown command: $command"; echo ;;
+esac
 
 # Set a reasonable default for --prefix if it wasn't specified: fall back to
 # $PREFIX from the environment, then to ~/.local/bin.
@@ -110,17 +260,26 @@ prefix="${prefix:-${PREFIX:-${HOME:-.}/.local/bin}}"
 # deliberately not passed on; install.sh doesn't know them and would
 # exit 2.
 install_flags="--prefix $prefix"
-[ -n "$purge" ]     && install_flags="$install_flags --purge"
+[ -n "$purge" ] && install_flags="$install_flags --purge"
 [ -n "$uninstall" ] && [ -z "$purge" ] && install_flags="$install_flags --uninstall"
-[ -n "$no_plain" ]  && install_flags="$install_flags --no-plain"
+[ -n "$no_plain" ] && install_flags="$install_flags --no-plain"
+
+if [ "$need_usage" != '' ]; then
+  usage
+  if [ "$need_usage" == 1 ]; then
+    exit 0
+  else
+    throw "$need_usage"
+  fi
+fi
 
 # If no utilities were specified, show the help.
 if [ -z "$utils$list" ]; then
-  warn "no utility named."
   usage >&2
-  exit 2
+  throw "no utility named."
 fi
 
+BASE_URL=https://unflab.app
 # Sane defaults for the curl command line.
 CURL="curl -fsSL --connect-timeout 15 --max-time 300 --retry 2 --retry-delay 5"
 
@@ -134,16 +293,34 @@ INDEX="$($CURL "$BASE_URL/index.txt" 2>/dev/null || true)"
 # for an error, or just print it for something like --list.
 available_utilities() {
   printf '%s\n' "$INDEX" | awk -F'\t' '
-    { name[NR]=$1; ver[NR]=$3
+    { name[NR]=$1; package[NR]=$2; ver[NR]=$3
       if (length($1) > m) m = length($1)
       if (length($3) > v) v = length($3) }
     END {
       m += 2; v += 2
+      pad = length("'$DIM$NORMAL'")
+
+      print "\n'$UNDERLINE'Standalone utilities:'$RESET'"
+      c = 0
       for (i = 1; i <= NR; i++) {
-        line = line sprintf("  %-*s%-*s", m, name[i], v, "(" ver[i] ")")
-        if (length(line) > 72) { print line; line = "" }
+        if (package[i] != "coreutils") {
+          c += pad
+          line  = line  sprintf("  '$NORMAL'%-*s'$DIM'%-*s'$NORMAL'", m, name[i], v, "(" ver[i] ")")
+          if (length(line)-c > 70) { print line; line=""; c=0 }
+        }
       }
-      if (line != "") print line
+      if (line != "") { print line; line="" }
+
+      print "\n'$UNDERLINE$ITALIC'coreutils'$NO_ITALIC' utilities:'$RESET'"
+      c = 0
+      for (i = 1; i <= NR; i++) {
+        if (package[i] == "coreutils") {
+          c += pad
+          line  = line  sprintf("  '$NORMAL'%-*s'$DIM'%-*s'$NORMAL'", m, name[i], v, "(" ver[i] ")")
+          if (length(line)-c > 70) { print line; line=""; c=0 }
+        }
+      }
+      if (line != "") { print line; line="" }
       print " "
     }'
 }
@@ -152,8 +329,6 @@ if [ -n "$list" ]; then
   # printf, not echo: whether echo expands \n is shell-dependent (bash
   # prints it literally unless xpg_echo is set), and this script is run
   # by whichever sh the user piped it to.
-  printf '\nAvailable utilities:\n\n'
-
   available_utilities
   exit 0
 fi
@@ -161,7 +336,7 @@ fi
 # Check the OS. `unflab` is macOS-only, for now (and probably forever)
 case "$(uname -s)" in
   Darwin) ;;
-  *) throw "these packages are macOS-only (this is $(uname -s))." ;;
+  *)      throw "these packages are macOS-only (this is $(uname -s))." ;;
 esac
 
 # Check the architecture. I'm only testing for Apple Silicon, but in
@@ -172,7 +347,7 @@ esac
 case "$(uname -m)" in
   arm64)  ARCH=arm64-apple-darwin ;;
   x86_64) ARCH=x86_64-apple-darwin ;;
-  *) throw "unsupported architecture $(uname -m)." ;;
+  *)      throw "unsupported architecture $(uname -m)." ;;
 esac
 
 # Search the index for the requested utilities, just for
@@ -182,7 +357,10 @@ for u in $utils; do
   found=0
   # index.txt lines are: <name> <TAB> <recipe> <TAB> <version>
   while IFS='	' read -r name recipe version; do
-    [ "$name" = "$u" ] && { found=1; break; }
+    [ "$name" = "$u" ] && {
+      found=1
+      break
+    }
   done <<INDEX_EOF
 $INDEX
 INDEX_EOF
@@ -191,9 +369,8 @@ done
 
 # If there are any unknown utilities, complain and exit.
 if [ -n "$unknown" ]; then
-  throw "unknown utility:$unknown
+  throw "unknown utility:$unknown$RESET
 
-Available utilities:
 $(available_utilities)"
 fi
 
@@ -221,7 +398,10 @@ for u in $utils; do
 
   # Get the version from the index
   while IFS='	' read -r name recipe v; do
-    [ "$name" = "$u" ] && { version="$v"; break; }
+    [ "$name" = "$u" ] && {
+      version="$v"
+      break
+    }
   done <<INDEX_EOF
 $INDEX
 INDEX_EOF
@@ -252,7 +432,8 @@ INDEX_EOF
     # No checksums file, or an empty one, means we can't verify anything.
     if [ ! -s "$sums" ]; then
       warn_np "    couldn't fetch checksums; use --no-checksum to install anyway"
-      failed="$failed $u"; continue
+      failed="$failed $u"
+      continue
     fi
 
     # Get the expected checksum for the archive
@@ -265,14 +446,16 @@ INDEX_EOF
     # this archive, so we can't check it.
     if [ -z "$want" ]; then
       warn_np "    no checksum published for $archive; use --no-checksum to install anyway"
-      failed="$failed $u"; continue
+      failed="$failed $u"
+      continue
     fi
 
     if [ "$want" != "$got" ]; then
       warn_np "    CHECKSUM MISMATCH; use --no-checksum to install anyway"
       warn_np "      expected $want"
       warn_np "      actual   $got"
-      failed="$failed $u"; continue
+      failed="$failed $u"
+      continue
     fi
   fi
 
@@ -283,7 +466,8 @@ INDEX_EOF
   mkdir -p "$dir"
   if ! tar xzf "$TMP/$archive" -C "$dir"; then
     warn_np "    couldn't unpack"
-    failed="$failed $u"; continue
+    failed="$failed $u"
+    continue
   fi
 
   # Hand off to the package's own installer: same script, same code path
@@ -367,9 +551,12 @@ helper_note() {
 
 # Say what actually happened: "installed jq" after an --uninstall run
 # would be worse than saying nothing.
-if [ -n "$purge" ]; then verb="purged"
-elif [ -n "$uninstall" ]; then verb="removed"
-else verb="installed"
+if [ -n "$purge" ]; then
+  verb="purged"
+elif [ -n "$uninstall" ]; then
+  verb="removed"
+else
+  verb="installed"
 fi
 
 # `curl | sh` output scrolls past, so end with the bit worth reading.
@@ -379,9 +566,9 @@ if [ -n "$ok" ] && [ -z "$failed" ]; then
   exit 0
 fi
 
-[ -n "$ok" ]     && echo "unflab: $verb$ok"
+[ -n "$ok" ] && echo "unflab: $verb$ok"
 [ -n "$failed" ] && warn "FAILED$failed"
-[ -n "$ok" ]     && helper_note
+[ -n "$ok" ] && helper_note
 [ -n "$failed" ] && exit 1
 
 exit 0

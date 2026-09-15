@@ -69,6 +69,7 @@ case $SWITCH in
     cat <<USAGE
 
 $UNDERLINE$BOLD$SELF$NORMAL : ${ITALIC}install and remove standalone macOS utilities$RESET
+$UNDERLINE${DIM}https://unflab.app/$RESET
 
   ${UNDERLINE}Commands:$RESET
     $COMMAND$SELF$RESET             $NAMES ${COMMENT}download and install$RESET

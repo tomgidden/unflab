@@ -1,4 +1,4 @@
-# ant -- the CLI for the Claude API
+# ant -- the CLI for the Claude API, plus bonus "askclaude" script
 #
 # Class 3 (convenience): anthropic-cli has no Homebrew dependencies --
 # upstream publishes prebuilt macOS binaries and an official tap -- so

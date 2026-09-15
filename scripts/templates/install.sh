@@ -14,7 +14,7 @@
 #   ./install.sh --no-plain             # skip unprefixed-name symlinks
 #   ./install.sh --quarantine           # also clear macOS's quarantine flag
 #   ./install.sh --path / --no-path     # force PATH advice on/off (non-interactive)
-#
+
 # POSIX sh, and only tools present on a stock macOS: install, ln, sed,
 # rm, readlink, command, xattr. Of `install` only -d and -m are used --
 # the flags common to both BSD (macOS) and GNU install -- so this works
@@ -189,38 +189,14 @@ print_post_install() {
 
 while [ $# -gt 0 ]; do
   case "$1" in
-  --prefix)
-    PREFIX="$2"
-    shift 2
-    ;;
-  --prefix=*)
-    PREFIX="${1#--prefix=}"
-    shift
-    ;;
-  --uninstall)
-    ACTION=uninstall
-    shift
-    ;;
-  --purge)
-    ACTION=purge
-    shift
-    ;;
-  --no-plain)
-    WANT_PLAIN=0
-    shift
-    ;;
-  --quarantine)
-    WANT_QUARANTINE_CLEAR=1
-    shift
-    ;;
-  --path)
-    PATH_MODE=yes
-    shift
-    ;;
-  --no-path)
-    PATH_MODE=no
-    shift
-    ;;
+  --prefix)     PREFIX="$2" shift 2 ;;
+  --prefix=*)   PREFIX="${1#--prefix=}" shift ;;
+  --uninstall)  ACTION=uninstall shift ;;
+  --purge)      ACTION=purge shift ;;
+  --no-plain)   WANT_PLAIN=0 shift ;;
+  --quarantine) WANT_QUARANTINE_CLEAR=1 shift ;;
+  --path)       PATH_MODE=yes shift ;;
+  --no-path)    PATH_MODE=no shift ;;
   -h | --help)
     sed -n '/^# Usage:/,/^$/p' "$0" | sed 's/^# \{0,1\}//'
     exit 0
@@ -278,21 +254,16 @@ declined_stems=""
 # say so in their post-install notes.
 dest_dir_for() {
   case "$1" in
-  bin) printf '%s' "$PREFIX" ;;
-  man1) printf '%s' "$MANDIR" ;;
-  man5) printf '%s' "$MAN5DIR" ;;
-  man8) printf '%s' "$MAN8DIR" ;;
-  doc) printf '%s' "$DOCDIR" ;;
-  data) printf '%s' "$DATADIR" ;;
-  config) printf '%s' "$CONFDIR" ;;
+  bin)             printf '%s' "$PREFIX" ;;
+  man1)            printf '%s' "$MANDIR" ;;
+  man5)            printf '%s' "$MAN5DIR" ;;
+  man8)            printf '%s' "$MAN8DIR" ;;
+  doc)             printf '%s' "$DOCDIR" ;;
+  data)            printf '%s' "$DATADIR" ;;
+  config)          printf '%s' "$CONFDIR" ;;
   completion-bash) printf '%s' "$BASE/share/bash-completion/completions" ;;
-  completion-zsh) printf '%s' "$BASE/share/zsh/site-functions" ;;
-  # Same directory as completion-zsh, and deliberately: site-functions
-  # is where autoloadable zsh functions live, a completion being one
-  # kind of those. A separate kind because the manifest should say
-  # which it is -- a completion is picked up by compinit, a plain
-  # function needs `autoload -Uz <name>` and does nothing without it.
-  function-zsh) printf '%s' "$BASE/share/zsh/site-functions" ;;
+  completion-zsh)  printf '%s' "$BASE/share/zsh/site-functions" ;;
+  function-zsh)    printf '%s' "$BASE/share/zsh/site-functions" ;;
   completion-fish) printf '%s' "$BASE/share/fish/vendor_completions.d" ;;
   *) return 1 ;;
   esac
@@ -558,7 +529,7 @@ UNFLAB_EOF
   if [ -n "$quarantined" ]; then
     echo "$BOLD$MAGENTA"
     echo "Note: macOS has quarantined the installed binary, and Gatekeeper"
-    echo "      will block it. Re-run with $YELLOW--quarantine$RESET, or clear it yourself:"
+    echo "      will block it. Re-run with $FLAG--quarantine$RESET, or clear it yourself:"
     echo "$RESET"
 
     for q in $quarantined; do
@@ -588,16 +559,16 @@ if [ "$PATH_ALREADY" = 0 ] && [ "$installed_count" -gt 0 ]; then
   # Pick the rc file for the user's login shell, not for whatever shell
   # happens to be running this script.
   case "${SHELL:-}" in
-  */zsh) RC="${ZDOTDIR:-$HOME}/.zshrc" ;;
+  */zsh)  RC="${ZDOTDIR:-$HOME}/.zshrc" ;;
   */bash) RC="$HOME/.bash_profile" ;;
   */fish) RC="$HOME/.config/fish/config.fish" ;;
-  *) RC="$HOME/.profile" ;;
+  *)      RC="$HOME/.profile" ;;
   esac
 
   # Prepare the line that may (or may not) be added.
   case "$RC" in
   */config.fish) LINE="fish_add_path $PREFIX" ;;
-  *) LINE="export PATH=\"$PREFIX:\$PATH\"" ;;
+  *)             LINE="export PATH=\"$PREFIX:\$PATH\"" ;;
   esac
 
   echo ""

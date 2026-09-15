@@ -4,6 +4,9 @@
 manage batches, files and keys, and script anything the API exposes
 without writing a client.
 
+BONUS: `askclaude` is a shell function for asking one-off questions
+without having to compose JSON.
+
 ```sh
 ant auth login                    # or export ANTHROPIC_API_KEY=...
 ant messages create \
@@ -31,7 +34,7 @@ says which is in effect.
 
 ## askclaude
 
-A zsh function shipped alongside, for asking one-off questions without
+A shell function shipped alongside, for asking one-off questions without
 composing JSON:
 
 ```sh
