@@ -6,12 +6,12 @@
 # so you can have just gtimeout, or just gshuf, on its own.
 
 UNFLAB_NAME=coreutils
-UNFLAB_VERSION=9.11
+UNFLAB_VERSION=9.12
 UNFLAB_HOMEPAGE=https://www.gnu.org/software/coreutils/
 UNFLAB_LICENSE=GPL-3.0-or-later
-UNFLAB_SOURCE=https://ftp.gnu.org/gnu/coreutils/coreutils-9.11.tar.xz
+UNFLAB_SOURCE=https://ftp.gnu.org/gnu/coreutils/coreutils-9.12.tar.xz
 UNFLAB_CHECK=gnu:coreutils
-UNFLAB_SHA256=394024eda0a5955217ceda9cd1201e65dc8fa3aa29c2951135a49521d57c3cc3
+UNFLAB_SHA256=a480198559733e9b3da999e90543ac6f888a2caa544d8d664c5a1f17e528e210
 UNFLAB_ATTEST=gnupg:https://ftp.gnu.org/gnu/gnu-keyring.gpg
 UNFLAB_TOOLCHAIN="c autotools make"
 UNFLAB_CLASS=2
