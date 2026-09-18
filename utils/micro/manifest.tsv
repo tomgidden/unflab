@@ -1,0 +1,5 @@
+bin	755	bin/micro	micro	-
+man1	644	share/man/man1/micro.1	micro.1	-
+doc	644	README.md	README.md	-
+doc	644	LICENSE	LICENSE	-
+doc	644	LICENSE-THIRD-PARTY	LICENSE-THIRD-PARTY	-
