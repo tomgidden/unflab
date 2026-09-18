@@ -346,7 +346,10 @@ if [ "$ACTION" = uninstall ] || [ "$ACTION" = purge ]; then
     fi
 
     # The plain-named alias first: it points at $dest, so verify before
-    # removing the thing it points to.
+    # removing the thing it points to. The `!` that marks a forced alias
+    # isn't part of the name -- strip it, or uninstall looks for a file
+    # called "!nano" and leaves the real symlink behind.
+    plain=${plain#\!}
     [ "$plain" != "-" ] && [ -n "$plain" ] && remove_own_link "$dir/$plain" "$dest"
     [ "$dest" != "-" ] && [ -n "$dest" ] && remove_own_file "$dir/$dest"
 
@@ -430,8 +433,30 @@ while IFS='	' read -r kind mode src dest plain; do
   #
   if [ "$WANT_PLAIN" = 1 ] && [ "$plain" != "-" ] && [ -n "$plain" ]; then
 
+    # A leading `!` on the alias means claim the name even if something
+    # already answers to it. The default -- deferring to whatever is
+    # there -- is right when the plain name might be a perfectly good
+    # system tool (coreutils' `timeout`, `shuf`); it is wrong when
+    # shadowing the existing one is the entire reason someone installed
+    # the package. nano is that case: macOS's /usr/bin/nano is a symlink
+    # to pico, so the name is never free, and a user asking for GNU nano
+    # by name has already decided which one they want.
+    #
+    # It only ever shadows: the symlink goes in the package's own
+    # prefix, the file it hides is untouched, and uninstalling removes
+    # the link and restores the previous behaviour. Which one wins still
+    # depends on PATH order, which is why the package says so in its
+    # post-install notes rather than assuming.
+    force_plain=0
+    case "$plain" in
+    '!'*)
+      force_plain=1
+      plain=${plain#\!}
+      ;;
+    esac
+
     # If it's a binary, check it's not already installed.
-    if [ "$kind" = bin ]; then
+    if [ "$kind" = bin ] && [ "$force_plain" = 0 ]; then
 
       # If the plain command exists...
       #
@@ -455,10 +480,15 @@ while IFS='	' read -r kind mode src dest plain; do
         fi
       fi
 
-    else
+    elif [ "$kind" != bin ]; then
       # Non-binary kinds follow whatever the binary decided. `man demo`
       # must work exactly when a plain `demo` command exists to be asked
       # about -- otherwise we'd document a tool the user isn't running.
+      #
+      # A forced alias never lands in declined_stems, so its man page
+      # falls through here and is installed, which is what we want: the
+      # binary claimed the name, so `man` should describe the tool that
+      # now answers to it.
       stem=${plain%%.*}
       case "$declined_stems" in
       *" $stem "*)

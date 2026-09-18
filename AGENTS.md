@@ -102,6 +102,18 @@ recipe, not after CI tells you.
 `doc`, `data`, `config`, `completion-bash`, `completion-zsh`,
 `completion-fish`, `function-zsh`. `-` means no alias.
 
+An alias is claimed only if nothing on the user's machine already
+answers to that name — `gtimeout` ships the alias `timeout`, and
+install.sh creates the `timeout` symlink on a Mac where the name is
+free and leaves it alone on one where it isn't. Prefixing the alias
+with `!` forces it: the symlink is created regardless. That is for the
+case where shadowing the existing command is the whole point of
+installing the package, and `utils/nano` is the only one so far —
+`/usr/bin/nano` is a symlink to pico, so the name is never free.
+A forced alias still only shadows: it goes in the package's own prefix,
+the file it hides is untouched, which one wins depends on PATH order,
+and uninstalling puts things back.
+
 The completion kinds place a file in each shell's conventional
 directory (`share/bash-completion/completions`, `share/zsh/
 site-functions`, `share/fish/vendor_completions.d`) and do nothing

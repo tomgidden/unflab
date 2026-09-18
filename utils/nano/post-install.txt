@@ -1,0 +1,34 @@
+macOS ships /usr/bin/nano as a symlink to /usr/bin/pico -- UW PICO,
+not GNU nano. This package installs as $PREFIX/gnunano, and
+$PREFIX/nano is a symlink to it, so which one you get by typing `nano`
+depends on whether $PREFIX comes before /usr/bin in your PATH.
+
+  Check with:  command -v nano
+               nano --version
+
+If that reports /usr/bin/nano or "UW PICO", your PATH has /usr/bin
+first. Either move $PREFIX ahead of it in your shell's rc file, or use
+the unambiguous name:
+
+  export EDITOR=gnunano
+  export VISUAL=gnunano
+
+Those two are what git, crontab and most other tools actually read, so
+setting them is worth doing regardless of PATH order -- it takes the
+guesswork out of which editor opens.
+
+The gnu- prefix follows the same convention as macOS's own gnumake:
+the GNU tool under a name that can't be confused with the system one.
+
+Syntax highlighting is installed but off until a nanorc asks for it.
+The shipped sample turns it on and documents every setting:
+
+  cp $DATADIR/sample.nanorc $DATADIR/nanorc
+  ln -s $DATADIR/nanorc ~/.nanorc
+
+Then uncomment the include line near the bottom of that file:
+
+  include $DATADIR/*.nanorc
+
+`man nanorc` documents the rest. If you already have a ~/.nanorc,
+add that one include line to it instead of replacing it.
