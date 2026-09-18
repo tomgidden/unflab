@@ -6,12 +6,12 @@
 # /usr/lib. The result needs nothing that isn't already on the machine.
 
 UNFLAB_NAME=pv
-UNFLAB_VERSION=1.11.0
+UNFLAB_VERSION=1.12.0
 UNFLAB_HOMEPAGE=https://www.ivarch.com/programs/pv.shtml
 UNFLAB_LICENSE=GPL-3.0-or-later
-UNFLAB_SOURCE=https://www.ivarch.com/programs/sources/pv-1.11.0.tar.gz
+UNFLAB_SOURCE=https://www.ivarch.com/programs/sources/pv-1.12.0.tar.gz
 UNFLAB_CHECK=html:https://www.ivarch.com/programs/pv.shtml:pv
-UNFLAB_SHA256=fc02c9fc2b82b20a92cc8d98f844be63f22abd98751a8e4abc875e1d803662eb
+UNFLAB_SHA256=31fdbdb449c7143cd2968567bef7599e9f031950e6158ee7bb76e40aebf6ffb8
 UNFLAB_ATTEST='none:upstream download page publishes no checksum or signature'
 UNFLAB_TOOLCHAIN="c autotools make"
 UNFLAB_CLASS=1
