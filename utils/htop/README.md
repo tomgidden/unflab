@@ -22,16 +22,20 @@ htop -t              # start in tree view
 
 ## About this build
 
-`brew install htop` brings its own ncurses. macOS already ships one in
-`/usr/lib`, so this build uses that and depends on nothing extra — the
-binary links only `libncurses` and `libSystem`, plus the IOKit and
-CoreFoundation frameworks macOS provides.
+`brew install htop` brings its own ncurses. This build compiles ncurses
+6.6 from source and links it statically, so the binary needs no shared
+library beyond `libSystem` and the IOKit and CoreFoundation frameworks
+macOS provides — not even macOS's own `libncurses`.
 
-The trade: macOS's ncurses is version 5.4 and has no wide-character
-library, so this is built `--disable-unicode`. htop draws its meters with
-ASCII rather than unicode box characters, and is otherwise identical.
-Enabling unicode would mean statically linking a modern ncurses 6.x —
-several megabytes of dependency for prettier bar charts.
+That static ncurses is also what makes unicode work. macOS ships only a
+narrow ncurses with no `libncursesw`, and htop's unicode support needs
+one; earlier versions of this package were built `--disable-unicode` for
+that reason. Now the tree view draws with proper box-drawing characters
+(`│ ├ └ ─`) and the sort column with `△`/`▽`, rather than `|`, `+` and
+`-`. The CPU and memory meters use `|` either way.
+
+Terminal descriptions come from macOS's own database at
+`/usr/share/terminfo`; nothing is installed to duplicate it.
 
 ## Upstream
 
