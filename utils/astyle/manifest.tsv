@@ -1,0 +1,7 @@
+bin	755	bin/astyle	astyle	-
+man1	644	share/man/man1/astyle.1	astyle.1	-
+completion-zsh	644	completion/_astyle	_astyle	-
+completion-bash	644	completion/astyle.bash	astyle	-
+completion-fish	644	completion/astyle.fish	astyle.fish	-
+doc	644	README.md	README.md	-
+doc	644	LICENSE	LICENSE	-
