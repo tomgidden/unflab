@@ -72,6 +72,7 @@ for f in "$@"; do
     scripts/resolve.sh|\
     scripts/templates/install.sh|\
     .github/workflows/build.yml|\
+    .github/actions/build-recipe/action.yml|\
     scripts/affected.sh)
       # This script decides what gets built, so a change to it rebuilds
       # everything -- the one case where being wrong is unrecoverable

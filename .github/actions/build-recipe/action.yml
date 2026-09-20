@@ -23,8 +23,8 @@ runs:
   steps:
     # Which toolchains this recipe needs, read from its own
     # UNFLAB_TOOLCHAIN declaration, so adding a recipe never means
-    # editing a workflow. Toolchains not listed here (rust, autotools)
-    # are taken from the runner image as-is.
+    # editing a workflow. Toolchains not listed here (rust) are taken
+    # from the runner image as-is.
     - id: toolchains
       shell: bash
       run: |
@@ -32,6 +32,7 @@ runs:
         need() { grep -qh "^UNFLAB_TOOLCHAIN=.*\b$1\b" "utils/${{ inputs.recipe }}/recipe.sh" && echo true || echo false; }
         echo "go=$(need go)" >> "$GITHUB_OUTPUT"
         echo "cmake=$(need cmake)" >> "$GITHUB_OUTPUT"
+        echo "autotools=$(need autotools)" >> "$GITHUB_OUTPUT"
 
     # check-latest: the runner image's cached Go drifts behind what a
     # recipe's go.mod needs.
@@ -48,6 +49,16 @@ runs:
       uses: lukka/get-cmake@latest
       with:
         cmakeVersion: "3.31.6"
+
+    # Most autotools recipes only run a ./configure the tarball already
+    # ships, so the runner image not having autoconf went unnoticed
+    # until duti -- which has to generate one, because upstream's
+    # configure is made by a `dist` target the git tag archive predates.
+    # Homebrew at build time is fine; verify.sh is what proves none of
+    # it reached the artefact.
+    - if: steps.toolchains.outputs.autotools == 'true'
+      shell: bash
+      run: brew list autoconf >/dev/null 2>&1 || brew install autoconf
 
     # Attestation is checked on the runner, where gpg and the network
     # are both available. Strict: evidence an upstream publishes must
