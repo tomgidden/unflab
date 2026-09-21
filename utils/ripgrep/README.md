@@ -57,6 +57,12 @@ no package manager, no runtime dependencies. Upstream disables
 jemalloc on macOS, so unlike some Rust builds there is no allocator
 library to link against.
 
+Built with PCRE2 support (`rg --pcre2` / `-P`), statically linked the
+same way as everything else here — matching upstream's own release
+binaries. This enables PCRE-specific regex syntax such as
+backreferences and lookaround that ripgrep's default Rust-regex engine
+doesn't support.
+
 Upstream also publishes prebuilt macOS binaries; this package exists so
 `rg` installs the same way as everything else here, not because it was
 hard to get.

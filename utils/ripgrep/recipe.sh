@@ -7,6 +7,18 @@
 #
 # Dual-licensed MIT OR UNLICENSE. Both licence files ship: upstream
 # offers the choice and dropping one would misrepresent the terms.
+#
+# Built with the pcre2 feature, matching upstream's own release builds
+# (.github/workflows/release.yml). This is not a dependency to escape --
+# pcre2-sys vendors PCRE2's C source and compiles it itself via the `cc`
+# crate, so nothing beyond a C compiler (already needed transitively by
+# cargo) is required, and PCRE2_SYS_STATIC=1 stops its build.rs from
+# probing pkg-config for a system libpcre2-8 first (see
+# pcre2-sys/build.rs in BurntSushi/rust-pcre2), which on a Homebrew-
+# equipped machine would otherwise link a dylib straight into the
+# binary. --pcre2 then opts users into PCRE-specific regex syntax
+# (backreferences, lookaround) that rg's default Rust-regex engine
+# doesn't support.
 
 UNFLAB_NAME=ripgrep
 UNFLAB_VERSION=15.2.0
@@ -25,7 +37,13 @@ unflab_build() {
 	# re-resolving, so every crate is pinned by the hash upstream tested
 	# -- the same bargain typst and doggo make for a build that fetches
 	# over the network.
-	cargo build --release --locked
+	#
+	# PCRE2_SYS_STATIC=1 is what makes this a static build rather than a
+	# gamble on the build machine's environment: without it, pcre2-sys
+	# checks pkg-config first and happily links Homebrew's libpcre2-8 if
+	# it finds one, which `scripts/verify.sh` would then catch on a
+	# runner that has it and miss on one that doesn't.
+	PCRE2_SYS_STATIC=1 cargo build --release --locked --features pcre2
 }
 
 unflab_stage() {
@@ -39,8 +57,8 @@ unflab_stage() {
 	# Dual-licensed: ship both, since the choice is the user's to make.
 	install -m 644 LICENSE-MIT "$STAGE_DIR/LICENSE-MIT"
 	install -m 644 UNLICENSE "$STAGE_DIR/UNLICENSE"
-	
-  install -m 644 "$RECIPE_DIR/README.md" "$STAGE_DIR/README.md"
+
+	install -m 644 "$RECIPE_DIR/README.md" "$STAGE_DIR/README.md"
 
 	./target/release/rg --generate man > "$STAGE_DIR/share/man/man1/rg.1"
 	./target/release/rg --generate complete-bash > "$STAGE_DIR/completion/rg.bash"
