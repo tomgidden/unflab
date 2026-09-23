@@ -1,4 +1,7 @@
 bin	755	bin/duti	duti	-
+bin	755	bin/dutis	dutis	-
+bin	755	bin/dutis-event-http	dutis-event-http	-
 man1	644	share/man/man1/duti.1	duti.1	-
 doc	644	README.md	README.md	-
 doc	644	LICENSE	LICENSE	-
+doc	644	LICENSE-dutis	LICENSE-dutis	-

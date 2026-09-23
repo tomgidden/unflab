@@ -62,23 +62,41 @@ release date rather than a literal `_DUTI_BUILD_DATE`.
 The binary links `ApplicationServices`, `CoreFoundation` and
 `CoreServices`, all part of macOS, so there is nothing else to install.
 
-## See also: dutis
+## dutis, included
 
-[`dutis`](https://github.com/tsonglew/dutis) is a separate, actively
-developed Rust tool that wraps this one: an interactive picker, a
-declarative config with `plan`/`diff`/`apply`, snapshots and rollback.
-It shells out to `duti` for every change it makes, so `duti` has to be
-installed first — with it missing, `dutis doctor` reports
-`Changes ready: false` and only its read-only commands work.
+[`dutis`](https://github.com/tsonglew/dutis) is installed alongside
+`duti`. It's a separate, actively developed Rust tool built on top of
+it: an interactive picker, a declarative config with
+`plan`/`diff`/`apply`, snapshots and rollback, and drift detection.
 
-It isn't packaged here, but it publishes a universal macOS binary with
-each release, so it's a download away once `duti` is in place.
+```sh
+dutis                      # interactive mode
+dutis get txt              # what opens .txt files?
+dutis doctor               # check it can find duti
+dutis plan dutis.toml      # what a config would change
+```
+
+It reads Launch Services directly, but it makes every change by
+running `duti`, which is why both come in one package here rather than
+dutis needing a separate install first. `dutis --help` and each
+command's `--help` are its documentation; there's no man page.
+
+`dutis-event-http`, an optional helper that forwards dutis's events to
+an HTTPS endpoint, is included too, as it is in upstream's own
+packaging.
+
+One limitation belongs to dutis itself: `dutis launch-agent` sets up a
+background watcher under launchd, and launchd's `PATH` doesn't include
+`~/.local/bin`. A watcher that only *reports* drift is fine, but one
+that tries to *fix* it won't find `duti`. The same is true of
+Homebrew's `/opt/homebrew/bin`.
 
 ## Upstream
 
-- Home: https://github.com/moretension/duti/
-- Version: 1.5.4
-- Licence: public domain (see `LICENSE`)
+- duti: https://github.com/moretension/duti/, version 1.5.4, public
+  domain (see `LICENSE`)
+- dutis: https://github.com/tsonglew/dutis, version 2.24.0, MIT (see
+  `LICENSE-dutis`)
 
-duti is Andrew Mortensen's work, released into the public domain.
-unflab only compiles and packages it.
+duti is Andrew Mortensen's work, released into the public domain. dutis
+is Tsonglew's. unflab only compiles and packages them.
