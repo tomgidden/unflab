@@ -1,0 +1,7 @@
+bin	755	bin/yq	yq	-
+doc	644	README.md	README.md	-
+doc	644	LICENSE	LICENSE	-
+completion-zsh	644	completion/_yq	_yq	-
+completion-bash	644	completion/yq.bash	yq	-
+completion-fish	644	completion/yq.fish	yq.fish	-
+man1	644	share/man/man1/yq.1	yq.1	-

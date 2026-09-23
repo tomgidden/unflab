@@ -1,0 +1,7 @@
+bin	755	bin/xq	xq	-
+man1	644	share/man/man1/xq.1	xq.1	-
+doc	644	README.md	README.md	-
+doc	644	LICENSE	LICENSE	-
+completion-zsh	644	completion/_xq	_xq	-
+completion-bash	644	completion/xq.bash	xq	-
+completion-fish	644	completion/xq.fish	xq.fish	-
