@@ -38,9 +38,7 @@ unflab_stage() {
   install -m 644 "$RECIPE_DIR/README.md" "$STAGE_DIR/README.md"
 
   # The documentation is POD inside the script, and macOS's own Perl
-  # ships pod2man, so nothing extra is needed. This used pandoc when it
-  # was available, which CI never had, so v0.6.4 shipped without the
-  # page the README promises.
+  # ships pod2man, so nothing extra is needed.
   install -d "$STAGE_DIR/share/man/man1"
   pod2man --section=1 --center='User Commands' \
     --release="rename $UNFLAB_VERSION" --name=RENAME \

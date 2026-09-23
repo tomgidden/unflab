@@ -55,8 +55,7 @@ unflab_stage() {
 
   # Upstream generates the roff from manpage.md with lowdown; pandoc does
   # the same job and is what the other man-page recipes use. Build time
-  # only -- the shipped page is plain roff. Required, not optional: while
-  # it was optional, CI had no pandoc and v0.6.4 shipped without it.
+  # only -- the shipped page is plain roff.
   install -d "$STAGE_DIR/share/man/man1"
   pandoc -s -t man -o "$STAGE_DIR/share/man/man1/btop.1" manpage.md
 

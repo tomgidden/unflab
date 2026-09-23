@@ -61,12 +61,9 @@ runs:
       shell: bash
       run: brew list autoconf >/dev/null 2>&1 || brew install autoconf
 
-    # Man pages generated from Markdown or POD (btop, rename, yq). The
-    # runner image has no pandoc, which went unnoticed while those
-    # recipes treated it as optional: v0.6.4 shipped btop and rename
-    # without their man pages. Upstream's zip rather than brew, because
-    # it's one pinned download that can never fall back to a source
-    # build. If the zip can't be had -- download failure, checksum
+    # Man pages generated from Markdown (btop, yq); the runner image has
+    # no pandoc. Upstream's zip rather than brew, because it's one pinned
+    # download that can never fall back to a source build. If the zip can't be had -- download failure, checksum
     # mismatch, an arch with no pinned sum -- brew is the fallback:
     # slower, but its bottles are verified too.
     - if: steps.toolchains.outputs.pandoc == 'true'
@@ -77,7 +74,7 @@ runs:
         # Chained with && rather than relying on set -e: bash ignores
         # set -e inside a function called on the left of ||, so a
         # checksum mismatch would otherwise carry on and put the
-        # unverified binary on PATH. (It did, in testing.)
+        # unverified binary on PATH.
         from_zip() {
           local a sum z
           case "$RUNNER_ARCH" in
