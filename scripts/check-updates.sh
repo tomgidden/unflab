@@ -105,24 +105,22 @@ unchecked=0
 printf '%-12s %-12s %-12s %s\n' RECIPE CURRENT LATEST ""
 printf '%-12s %-12s %-12s %s\n' ------ ------- ------ ""
 
-for r in "${recipes[@]}"; do
-  recipe="$ROOT_DIR/utils/$r/recipe.sh"
-  [ -f "$recipe" ] || continue
-
-  current="$(sed -n 's/^UNFLAB_VERSION=//p' "$recipe" | head -1 | tr -d '"')"
-  spec="$(sed -n 's/^UNFLAB_CHECK=//p' "$recipe" | head -1 | tr -d '"')"
+# One line of the report: a recipe's main upstream, or one of the
+# extra sources it pins alongside (see below).
+report() {
+  local label="$1" current="$2" spec="$3" raw latest newer
 
   if [ -z "$spec" ]; then
-    printf '%-12s %-12s %-12s %s\n' "$r" "$current" "-" "no UNFLAB_CHECK"
+    printf '%-12s %-12s %-12s %s\n' "$label" "$current" "-" "no UNFLAB_CHECK"
     unchecked=$((unchecked + 1))
-    continue
+    return
   fi
 
   raw="$(latest_version "$spec" 2>/dev/null || true)"
   latest="$(strip_prefix "${raw:-}")"
 
   if [ -z "$latest" ]; then
-    printf '%-12s %-12s %-12s %s\n' "$r" "$current" "?" "CHECK FAILED"
+    printf '%-12s %-12s %-12s %s\n' "$label" "$current" "?" "CHECK FAILED"
     failed=$((failed + 1))
   elif [ "$latest" != "$current" ]; then
     # sort -V decides which is actually newer: an upstream that pulls a
@@ -130,14 +128,35 @@ for r in "${recipes[@]}"; do
     # available update.
     newer="$(printf '%s\n%s\n' "$current" "$latest" | sort -V | tail -1)"
     if [ "$newer" = "$current" ]; then
-      printf '%-12s %-12s %-12s %s\n' "$r" "$current" "$latest" "(ours is newer)"
+      printf '%-12s %-12s %-12s %s\n' "$label" "$current" "$latest" "(ours is newer)"
     else
-      printf '%-12s %-12s %-12s %s\n' "$r" "$current" "$latest" "UPDATE"
+      printf '%-12s %-12s %-12s %s\n' "$label" "$current" "$latest" "UPDATE"
       behind=$((behind + 1))
     fi
   else
-    printf '%-12s %-12s %-12s %s\n' "$r" "$current" "$latest" "up to date"
+    printf '%-12s %-12s %-12s %s\n' "$label" "$current" "$latest" "up to date"
   fi
+}
+
+for r in "${recipes[@]}"; do
+  recipe="$ROOT_DIR/utils/$r/recipe.sh"
+  [ -f "$recipe" ] || continue
+
+  report "$r" \
+    "$(sed -n 's/^UNFLAB_VERSION=//p' "$recipe" | head -1 | tr -d '"')" \
+    "$(sed -n 's/^UNFLAB_CHECK=//p' "$recipe" | head -1 | tr -d '"')"
+
+  # A second upstream pinned in the same recipe -- dutis inside duti --
+  # is watched when the recipe gives it a UNFLAB_<PART>_CHECK beside its
+  # UNFLAB_<PART>_VERSION. Opt-in, so the static libraries some recipes
+  # bundle (nettle, apr) aren't reported as unchecked until someone
+  # decides they should be watched.
+  for part in $(sed -n 's/^UNFLAB_\([A-Z0-9]*\)_CHECK=.*/\1/p' "$recipe"); do
+    lower="$(printf '%s' "$part" | tr 'A-Z' 'a-z')"
+    report "$r/$lower" \
+      "$(sed -n "s/^UNFLAB_${part}_VERSION=//p" "$recipe" | head -1 | tr -d '"')" \
+      "$(sed -n "s/^UNFLAB_${part}_CHECK=//p" "$recipe" | head -1 | tr -d '"')"
+  done
 done
 
 echo
