@@ -89,8 +89,9 @@ interpret_arg() {
            --prefix=*)  prefix="${arg#--prefix=}" ;;
       -k | --keep)      keep=1 ;;
       -c | --no-color | --no-colour) no_color=1 ;;
-      -k | --no-plain)  no_plain=1 ;;
-      --no-checksum)    no_checksum=1 ;;
+           --no-plain)  no_plain=1 ;;
+           --no-helper) no_helper=1 ;;
+           --no-checksum) no_checksum=1 ;;
       -*)               bad_args="$bad_args $arg" ;;
       *)                utils="$utils $arg" ;;
     esac
@@ -263,6 +264,12 @@ install_flags="--prefix $prefix"
 [ -n "$purge" ] && install_flags="$install_flags --purge"
 [ -n "$uninstall" ] && [ -z "$purge" ] && install_flags="$install_flags --uninstall"
 [ -n "$no_plain" ] && install_flags="$install_flags --no-plain"
+
+if [ "$need_usage" != 1 ]; then
+  [ "$want_prefix" = 1 ] && need_usage="--prefix needs a directory"
+  [ -n "$bad_prefix" ] && need_usage="--prefix needs a directory, not $EM1$bad_prefix$EM0"
+  [ -n "$bad_args" ] && need_usage="unknown option: $EM1${bad_args# }$EM0"
+fi
 
 if [ "$need_usage" != '' ]; then
   usage
