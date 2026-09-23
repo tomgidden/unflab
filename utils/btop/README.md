@@ -35,10 +35,9 @@ is untouched by `--uninstall`.
 Built from the upstream Makefile with Xcode's `clang++`. It links
 against nothing outside `/usr/lib` and `/System/`.
 
-No man page: upstream writes it in Markdown and converts it with
-`lowdown` at build time. Pulling in a Markdown-to-roff converter to ship
-one page is the kind of thing this project exists to avoid — `btop
---help` covers the flags, and the interface documents itself.
+`man btop` works. Upstream writes the page in Markdown and converts it
+with `lowdown`; this build converts it with pandoc instead. That's only
+needed at build time: what ships is an ordinary man page.
 
 ## Upstream
 

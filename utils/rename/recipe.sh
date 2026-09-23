@@ -37,15 +37,14 @@ unflab_stage() {
   install -m 644 "$RECIPE_DIR/LICENSE" "$STAGE_DIR/LICENSE"
   install -m 644 "$RECIPE_DIR/README.md" "$STAGE_DIR/README.md"
 
-  if [ -x "$(command -v pandoc)" ]; then
-    # If we have pandoc (eg. macos runner), use it to generate the man page
-    pandoc -s -t man -f pod \
-      -o "$STAGE_DIR/share/man/man1/rename.1" \
-      $STAGE_DIR/bin/rename
-
-    if [ -f "$STAGE_DIR/share/man/man1/rename.1" ]; then
-      printf 'man1\t644\tshare/man/man1/rename.1\trename.1\t-\n' \
-        >> "$STAGE_DIR/manifest.tsv"
-    fi
-  fi
+  # The documentation is POD inside the script, and macOS's own Perl
+  # ships pod2man, so nothing extra is needed. This used pandoc when it
+  # was available, which CI never had, so v0.6.4 shipped without the
+  # page the README promises.
+  install -d "$STAGE_DIR/share/man/man1"
+  pod2man --section=1 --center='User Commands' \
+    --release="rename $UNFLAB_VERSION" --name=RENAME \
+    rename > "$STAGE_DIR/share/man/man1/rename.1"
+  printf 'man1\t644\tshare/man/man1/rename.1\trename.1\t-\n' \
+    >> "$STAGE_DIR/manifest.tsv"
 }

@@ -89,6 +89,11 @@ for tool in $UNFLAB_TOOLCHAIN; do
         echo "  MISSING  cargo"
         echo "           Install from https://rustup.rs/"
         missing+=(cargo); } ;;
+    pandoc)
+      have pandoc && echo "  ok       pandoc" || {
+        echo "  MISSING  pandoc (for the man page only)"
+        echo "           Install from https://github.com/jgm/pandoc/releases"
+        missing+=(pandoc); } ;;
     pkg-config|pkgconf)
       have pkg-config && echo "  ok       pkg-config" || { echo "  MISSING  pkg-config"; missing+=(pkg-config); } ;;
     *)

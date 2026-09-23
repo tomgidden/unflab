@@ -25,7 +25,7 @@ UNFLAB_SOURCE=https://github.com/aristocratos/btop/archive/refs/tags/v1.4.7.tar.
 UNFLAB_CHECK=github:aristocratos/btop
 UNFLAB_SHA256=933de2e4d1b2211a638be463eb6e8616891bfba73aef5d38060bd8319baeefc6
 UNFLAB_ATTEST='none:GitHub auto-generated tag archive; upstream publishes no checksum for it'
-UNFLAB_TOOLCHAIN="c++ make"
+UNFLAB_TOOLCHAIN="c++ make pandoc"
 UNFLAB_CLASS=3
 UNFLAB_PACKAGES=btop
 
@@ -53,15 +53,12 @@ unflab_stage() {
     install -m 644 "$t" "$STAGE_DIR/themes/$(basename "$t")"
   done
 
-  if [ -x "$(command -v pandoc)" ]; then
-    # If we have pandoc (eg. macos runner), use it to generate the man page
-    pandoc -s -t man -o "$STAGE_DIR/share/man/man1/btop.1" manpage.md
-  fi
-
-  # Else, No man page: upstream ships manpage.md and generates the roff with
-  # lowdown at build time. Pulling in a Markdown-to-roff converter for
-  # one page would be exactly the dependency bloat this project exists
-  # to avoid, and `btop --help` covers the flags.
+  # Upstream generates the roff from manpage.md with lowdown; pandoc does
+  # the same job and is what the other man-page recipes use. Build time
+  # only -- the shipped page is plain roff. Required, not optional: while
+  # it was optional, CI had no pandoc and v0.6.4 shipped without it.
+  install -d "$STAGE_DIR/share/man/man1"
+  pandoc -s -t man -o "$STAGE_DIR/share/man/man1/btop.1" manpage.md
 
 	MANIFEST="$STAGE_DIR/.unflab/manifest.tsv"
 
@@ -72,10 +69,8 @@ unflab_stage() {
 		printf 'data\t644\tthemes/%s\tthemes/%s\t-\n' "$n" "$n" >> "$MANIFEST"
 	done
 
-	if [ -f "$STAGE_DIR/share/man/man1/btop.1" ]; then
-		printf 'man1\t644\tshare/man/man1/btop.1\tbtop.1\t-\n' >> "$MANIFEST"
-	fi
-  
+	printf 'man1\t644\tshare/man/man1/btop.1\tbtop.1\t-\n' >> "$MANIFEST"
+
 	if [ -s "$MANIFEST" ]; then
 		sort -u -o "$MANIFEST" "$MANIFEST"
 	fi
