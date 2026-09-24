@@ -95,7 +95,7 @@ latest_version() {
 recipes=("$@")
 if [ ${#recipes[@]} -eq 0 ]; then
   # shellcheck disable=SC2207
-  recipes=($(ls -d "$ROOT_DIR"/utils/*/ | xargs -n1 basename | sort))
+  recipes=($("$SCRIPT_DIR/resolve.sh" list-recipes))
 fi
 
 behind=0

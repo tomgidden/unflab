@@ -40,6 +40,7 @@ UNFLAB_SHA256=3f8f599899a0c3b85549190417e4433502f97e332ce96cd8fa95c0a9adbe56de
 UNFLAB_ATTEST='none:GitHub auto-generated tag archive; upstream published no release assets and has been dormant since 2018'
 UNFLAB_TOOLCHAIN="c autotools make rust cargo"
 UNFLAB_CLASS=3
+UNFLAB_ALT_NAMES="dutis"
 
 # The tag is duti-1.5.4, so the archive unpacks to duti-duti-1.5.4
 # rather than the duti-1.5.4 that build.sh derives from name and

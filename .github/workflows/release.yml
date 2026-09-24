@@ -27,7 +27,7 @@ jobs:
       - id: list
         run: |
           set -euo pipefail
-          names=$(ls -d utils/*/ | xargs -n1 basename | sort)
+          names=$(scripts/resolve.sh list-recipes)
           json=$(printf '%s\n' $names | jq -R . | jq -sc .)
           echo "matrix=$json" >> "$GITHUB_OUTPUT"
           echo "Recipes: $names"
@@ -94,8 +94,12 @@ jobs:
           gh release download "$prev" --repo "$GITHUB_REPOSITORY" \
             --pattern 'index.txt' --dir prev
           n=0
-          while IFS=$'\t' read -r name recipe version; do
+          # Older indexes have three columns; an empty package column
+          # means the row is the package itself. Rows naming another
+          # package are alternative names, with no archive of their own.
+          while IFS=$'\t' read -r name recipe version kind package _; do
             [ "$recipe" = '${{ matrix.recipe }}' ] || continue
+            [ "${package:-$name}" = "$name" ] || continue
             asset="unflab-$name-$version-${{ matrix.target.arch }}.tar.gz"
             gh release download "$prev" --repo "$GITHUB_REPOSITORY" \
               --pattern "$asset" --dir dist || {
@@ -188,9 +192,11 @@ jobs:
         run: |
           set -euo pipefail
           missing=0
-          while IFS=$'\t' read -r name recipe version; do
+          while IFS=$'\t' read -r name recipe version kind package _; do
             [ -n "$name" ] || continue
-            if ! ls dist/unflab-"$name"-"$version"-*.tar.gz >/dev/null 2>&1; then
+            # Stubs publish text, not archives.
+            [ "${kind:-build}" = build ] || continue
+            if ! ls dist/unflab-"${package:-$name}"-"$version"-*.tar.gz >/dev/null 2>&1; then
               echo "no archive for $name $version" >&2
               missing=$((missing + 1))
             fi

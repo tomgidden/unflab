@@ -12,7 +12,11 @@
 #   resolve.sh recipe   <name>   -> the recipe that builds it
 #   resolve.sh packages <name>   -> the package(s) that name refers to
 #   resolve.sh list-packages     -> every package, one per line
-#   resolve.sh list-recipes      -> every recipe, one per line
+#   resolve.sh list-recipes      -> every recipe that builds, one per line
+#   resolve.sh list-stubs        -> every stub recipe (refer, delegate)
+#
+# Stub recipes build nothing, so the lists that drive builds leave them
+# out; the docs generator reads utils/ itself.
 #
 # A name that is both a recipe and a package (tree) resolves to the same
 # thing either way, so the ambiguity is harmless.
@@ -35,14 +39,28 @@ recipe_packages() {
   ' _ "$recipe"
 }
 
+# A recipe's UNFLAB_KIND; `build` when it doesn't say.
+recipe_kind() {
+  local k
+  k="$(sed -n 's/^UNFLAB_KIND=//p' "$1" | head -1 | tr -d "\"'")"
+  printf '%s' "${k:-build}"
+}
+
 case "${1:-}" in
-  list-recipes)
-    ls -d "$ROOT_DIR"/utils/*/ 2>/dev/null | xargs -n1 basename | sort
+  list-recipes|list-stubs)
+    for r in "$ROOT_DIR"/utils/*/recipe.sh; do
+      [[ -f "$r" ]] || continue
+      k="$(recipe_kind "$r")"
+      if [[ "$1" == list-recipes ]]; then [[ "$k" == build ]] || continue
+      else [[ "$k" != build ]] || continue; fi
+      basename "$(dirname "$r")"
+    done | sort
     ;;
 
   list-packages)
     for r in "$ROOT_DIR"/utils/*/recipe.sh; do
       [[ -f "$r" ]] || continue
+      [[ "$(recipe_kind "$r")" == build ]] || continue
       # shellcheck disable=SC2086
       printf '%s\n' $(recipe_packages "$r")
     done | sort -u
@@ -92,7 +110,7 @@ case "${1:-}" in
     ;;
 
   *)
-    echo "usage: resolve.sh {recipe|packages} <name> | list-recipes | list-packages" >&2
+    echo "usage: resolve.sh {recipe|packages} <name> | list-recipes | list-stubs | list-packages" >&2
     exit 2
     ;;
 esac

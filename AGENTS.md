@@ -15,6 +15,7 @@ the gate is what proves none of it survived into the artefact.
     utils/<recipe>/recipe.sh    metadata + unflab_build + unflab_stage
     utils/<recipe>/manifest.tsv what to install where (or generated)
     utils/<recipe>/README.md    ships inside the package
+    utils/<recipe>/message.txt  a stub's text, printed by `get`
     scripts/build.sh            fetch, verify, extract, build, stage
     scripts/verify.sh           the gate
     scripts/package.sh          staged tree -> dist/*.tar.gz
@@ -29,10 +30,12 @@ what the project actually builds.
 
 ## Adding a package
 
-Before writing anything, check `utils/NOT-SHIPPED.md` — a candidate may
-have been considered and rejected already, and the reason is recorded
-there. If you reject one, add it there rather than leaving the next
-person to redo the analysis.
+Before writing anything, check `utils/NOT-SHIPPED.md` and the stub
+recipes (`scripts/resolve.sh list-stubs`) — a candidate may have been
+considered and rejected already, and the reason is recorded there. If
+you reject one that people will ask for by name, make it a stub (see
+below); otherwise add it to `NOT-SHIPPED.md`. Either way the next
+person doesn't redo the analysis.
 
 Then look at the corresponding Homebrew recipe if there is one. This
 will be a guide on what will be delivered, but treat it just as a
@@ -188,6 +191,15 @@ Hardcoding `~/.local/share/...` is the mistake to avoid: it is right
 for the default install and quietly wrong for every other one, in
 exactly the lines a user copies into an rc file.
 
+### Alternative names
+
+`UNFLAB_ALT_NAMES="dutis"` adds index rows that resolve to one of the
+recipe's packages, so `unflab dutis` installs the duti package. A bare
+name maps to the recipe's first package; `alias:package` picks another.
+They are index entries only — no archive, no page — and the docs
+generator refuses one that collides with a real package name. Stubs
+use them too: `msgfmt` and `xgettext` resolve to the gettext-tools stub.
+
 ### Verifying before you push
 
     make <name>.prereqs      what building it needs, and what's missing
@@ -204,6 +216,40 @@ from `PATH`, runs every binary, resolves every man page, then purges
 and checks nothing was left behind.
 
 Finally: `make docs` and confirm the new page renders.
+
+## Stubs: names that aren't built
+
+Some tools shouldn't be built here but will be asked for by name. A
+stub recipe answers for them. It sets `UNFLAB_KIND`, has no source or
+build functions, and puts its reasoning in the header comment — the
+same place a built recipe's class argument goes.
+
+- **`refer`** — `get` prints `message.txt`: a terse why-not, and where
+  to get it instead. `dig` points at doggo; `bun` explains that its
+  installer edits shell rc files with no opt-out.
+- **`delegate`** — `get` prints `message.txt` and the command in
+  `UNFLAB_INSTALL`, and runs it only on a `y` at the terminal. With no
+  terminal it prints and installs nothing. `--uninstall` prints
+  `UNFLAB_REMOVE` rather than running anything. Both may use `$PREFIX`
+  (the bin directory) and `$BASE` (its parent), which `get` fills in.
+
+Only delegate to an installer that can be told where to install and
+not to edit shell config. uv, mise, deno and node (via a one-off `n`)
+qualify; bun doesn't, so it's a refer.
+
+Either way `get` exits 1: nothing was installed by unflab.
+
+A stub recipe needs `UNFLAB_NAME`, `UNFLAB_KIND`, `UNFLAB_HOMEPAGE`,
+line 1's description, and `message.txt`. `resolve.sh list-recipes`,
+`affected.sh`, the Makefile and CI all skip stubs, so none of them try
+to build one. `make docs` gives each a page, publishes its text under
+`site-extra/stub/`, and lists it in `index.txt` with kind `refer` or
+`delegate` and version `-`.
+
+A name unflab doesn't know at all is looked up in webi's sitemap, and
+if webi has it, `get` offers to run webi's installer, with the same
+confirmation. webi ignores `--prefix` and edits rc files, and the
+prompt says so.
 
 ## Updating a package
 
@@ -240,6 +286,9 @@ package with no archive behind it is left out of `index.txt` entirely.
 The site can only ever advertise what `get` can actually fetch —
 without that rule it advertises packages that 404, which is exactly
 what happened to webi, btop, shfmt and socat.
+
+Stubs are the exception: they have no archive to wait for, so a new or
+changed stub goes live on push.
 
 To redeploy the site without touching a package, run the Pages workflow
 by hand (`workflow_dispatch`). There is no need to cut a release for it.
@@ -345,6 +394,34 @@ The rhythm that avoids all of it:
 
 Pushing a tag is public and hard to walk back. Confirm with the user
 before pushing one unless they have already asked for it.
+
+## Planned: a pyinstaller toolchain
+
+Not built yet — this records the intended shape, so a Python tool isn't
+rejected just for being Python.
+
+A Python CLI needs an interpreter, and macOS doesn't ship a usable one.
+The default answer is a refer stub pointing at `uv tool install` or
+`uvx` (`unflab uv`), which manages exactly that. Bundling is for a tool
+unique and useful enough to justify it, and it's messy, so it should be
+rare.
+
+When one does, it should be a toolchain, not a one-off recipe:
+
+- `UNFLAB_TOOLCHAIN="pyinstaller"`, provisioned in CI the way pandoc
+  and autoconf are: a pinned Python, and PyInstaller at a pinned
+  version, both at build time only.
+- A shared helper, `scripts/lib/pyinstaller.sh`, that creates a venv,
+  installs the tool's pinned requirements with hashes
+  (`pip install --require-hashes`), and runs PyInstaller in `--onedir`
+  mode. `--onefile` unpacks itself to a temp directory on every run,
+  which is slow and leaves files behind.
+- The onedir tree staged under `share/<name>/`, with a `bin/` entry
+  point that execs into it — the same layout btop uses for its themes.
+- The gate still applies: every Mach-O in the bundle — the interpreter,
+  and each extension module's `.so` — must link nothing outside
+  `/usr/lib` and `/System/`. Wheels that vendor their own dylibs will
+  fail it, and that is the point.
 
 ## Conventions
 

@@ -73,6 +73,7 @@ jobs:
           cp site-extra/get site/get
           cp site-extra/unflab site/unflab
           cp site-extra/index.txt site/index.txt
+          cp -R site-extra/stub site/stub
           # Served without an extension, so make sure it looks right.
           head -1 site/get
           test "$(head -c 2 site/get)" = '#!'

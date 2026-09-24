@@ -36,7 +36,7 @@ jobs:
       - id: list
         run: |
           set -euo pipefail
-          all=$(ls -d utils/*/ | xargs -n1 basename | sort)
+          all=$(scripts/resolve.sh list-recipes)
 
           # Build only what the diff can affect, on pushes as well as
           # pull requests. Merging a one-recipe bump used to rebuild

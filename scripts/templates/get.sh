@@ -300,10 +300,13 @@ INDEX="$($CURL "$BASE_URL/index.txt" 2>/dev/null || true)"
 # for an error, or just print it for something like --list.
 available_utilities() {
   printf '%s\n' "$INDEX" | awk -F'\t' '
-    { name[NR]=$1; package[NR]=$2; ver[NR]=$3
+    $4 == "refer" { next }
+    $4 == "delegate" { d = d "  " $1; next }
+    { n++; name[n]=$1; package[n]=$2; ver[n]=$3
       if (length($1) > m) m = length($1)
       if (length($3) > v) v = length($3) }
     END {
+      NR = n
       m += 2; v += 2
       pad = length("'$DIM$NORMAL'")
 
@@ -328,6 +331,11 @@ available_utilities() {
         }
       }
       if (line != "") { print line; line="" }
+
+      if (d != "") {
+        print "\n'$UNDERLINE'Installed by upstream'"'"'s own installer:'$RESET'"
+        print d
+      }
       print " "
     }'
 }
@@ -357,22 +365,38 @@ case "$(uname -m)" in
   *)      throw "unsupported architecture $(uname -m)." ;;
 esac
 
-# Search the index for the requested utilities, just for
-# validation at this point.
-unknown=""
-for u in $utils; do
-  found=0
-  # index.txt lines are: <name> <TAB> <recipe> <TAB> <version>
-  while IFS='	' read -r name recipe version; do
-    [ "$name" = "$u" ] && {
-      found=1
-      break
-    }
+# index.txt lines are: name, recipe, version, kind, package. An older
+# index has only the first three.
+lookup() {
+  version=; kind=; package=
+  while IFS='	' read -r name recipe v k p _; do
+    [ "$name" = "$1" ] || continue
+    version="$v"; kind="${k:-build}"; package="${p:-$name}"
+    return 0
   done <<INDEX_EOF
 $INDEX
 INDEX_EOF
-  [ "$found" = 1 ] || unknown="$unknown $u"
+  return 1
+}
+
+unknown=""
+for u in $utils; do
+  lookup "$u" || unknown="$unknown $u"
 done
+
+# A name unflab doesn't have may be one webi does.
+webi=""
+if [ -n "$unknown" ]; then
+  SITEMAP="$($CURL https://webinstall.dev/sitemap.xml 2>/dev/null || true)"
+  rest=""
+  for u in $unknown; do
+    case "$SITEMAP" in
+      *"<loc>https://webinstall.dev/$u</loc>"*) webi="$webi $u" ;;
+      *) rest="$rest $u" ;;
+    esac
+  done
+  unknown="$rest"
+fi
 
 # If there are any unknown utilities, complain and exit.
 if [ -n "$unknown" ]; then
@@ -398,24 +422,89 @@ trap cleanup EXIT INT TERM
 # Track what utils we've processed
 ok=""
 failed=""
+skipped=""
+
+# Stub text uses $PREFIX and $BASE for this run's directories.
+expand() {
+  sed -e "s|\\\$PREFIX|$prefix|g" -e "s|\\\$BASE|${prefix%/*}|g"
+}
+
+# 0 for yes, 1 for no, 2 when there's no terminal to ask on.
+ask() {
+  (exec </dev/tty) 2>/dev/null || return 2
+  printf '%s [y/N] ' "$1" >/dev/tty
+  read -r answer </dev/tty || return 1
+  case "$answer" in y|Y|yes|Yes|YES) return 0 ;; esac
+  return 1
+}
+
+stub_text() {
+  $CURL "$BASE_URL/stub/$1" 2>/dev/null | expand
+}
+
+run_offered() {
+  echo ""
+  echo "    $2"
+  echo ""
+  ask "    Run it?"
+  case $? in
+    0) if sh -c "set -o pipefail; $2"; then ok="$ok $1"; else failed="$failed $1"; fi ;;
+    2) warn_np "    no terminal to ask on; run it yourself if you want it"
+       skipped="$skipped $1" ;;
+    *) skipped="$skipped $1" ;;
+  esac
+}
+
+refer() {
+  echo "==> $1"
+  stub_text "$2" | sed '/./s/^/    /'
+  skipped="$skipped $1"
+}
+
+delegate() {
+  echo "==> $1"
+  stub_text "$2" | sed '/./s/^/    /'
+  if [ -n "$uninstall" ]; then
+    echo ""
+    echo "    It isn't an unflab package, so unflab won't remove it. To do it yourself:"
+    echo ""
+    stub_text "$2.remove" | sed '/./s/^/      /'
+    skipped="$skipped $1"
+    return
+  fi
+  run_offered "$1" "$(stub_text "$2.install")"
+}
+
+from_webi() {
+  echo "==> $1"
+  echo "    Not in unflab, but webi has it: https://webinstall.dev/$1"
+  if [ -n "$uninstall" ]; then
+    echo "    unflab won't remove what webi installed; that page says how."
+    skipped="$skipped $1"
+    return
+  fi
+  echo "    webi installs under ~/.local whatever --prefix says, and adds"
+  echo "    itself to PATH by editing your shell's rc files."
+  run_offered "$1" "curl -fsS https://webi.sh/$1 | sh"
+}
 
 # For each util specified...
 for u in $utils; do
-  version=""
-
-  # Get the version from the index
-  while IFS='	' read -r name recipe v; do
-    [ "$name" = "$u" ] && {
-      version="$v"
-      break
-    }
-  done <<INDEX_EOF
-$INDEX
-INDEX_EOF
+  case " $webi " in *" $u "*) from_webi "$u"; echo ""; continue ;; esac
+  lookup "$u"
+  case "$kind" in
+    refer)    refer "$u" "$package"; echo ""; continue ;;
+    delegate) delegate "$u" "$package"; echo ""; continue ;;
+  esac
 
   # Construct the archive name
-  archive="unflab-${u}-${version}-${ARCH}.tar.gz"
-  echo "==> $u $version"
+  archive="unflab-${package}-${version}-${ARCH}.tar.gz"
+  if [ "$package" = "$u" ]; then
+    echo "==> $u $version"
+  else
+    echo "==> $u: in the $package package, $version"
+  fi
+  u="$package"
 
   # Download the archive
   if ! $CURL -o "$TMP/$archive" "$RELEASE_URL/$archive"; then
@@ -567,15 +656,10 @@ else
 fi
 
 # `curl | sh` output scrolls past, so end with the bit worth reading.
-if [ -n "$ok" ] && [ -z "$failed" ]; then
-  echo "unflab: $verb$ok"
-  helper_note
-  exit 0
-fi
-
 [ -n "$ok" ] && echo "unflab: $verb$ok"
+[ -n "$skipped" ] && warn "not $verb:$skipped"
 [ -n "$failed" ] && warn "FAILED$failed"
 [ -n "$ok" ] && helper_note
-[ -n "$failed" ] && exit 1
+[ -n "$failed$skipped" ] && exit 1
 
 exit 0

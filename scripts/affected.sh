@@ -29,7 +29,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-all_recipes() { ls -d "$ROOT_DIR"/utils/*/ | xargs -n1 basename | sort; }
+all_recipes() { "$SCRIPT_DIR/resolve.sh" list-recipes; }
 
 # Recipes that source a given helper, e.g. scripts/lib/openssl.sh.
 recipes_sourcing() {
@@ -119,7 +119,9 @@ if [ "$everything" -eq 1 ]; then
   exit 0
 fi
 
-# Deduplicate, and drop anything that is not actually a recipe.
+# Deduplicate, and drop anything that is not a recipe that builds --
+# a stub's directory changing is a docs change.
+built=" $(all_recipes | tr '\n' ' ') "
 for n in $selected; do
-  [ -d "$ROOT_DIR/utils/$n" ] && printf '%s\n' "$n"
+  case "$built" in *" $n "*) printf '%s\n' "$n" ;; esac
 done | sort -u

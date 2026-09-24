@@ -7,7 +7,8 @@
 #   docs/index.md         the landing page, with the utility table
 #   site-extra/get        the curl|sh bootstrap, with URLs substituted
 #   site-extra/unflab     the helper, likewise
-#   site-extra/index.txt  name/recipe/version index the bootstrap reads
+#   site-extra/index.txt  name/recipe/version/kind/package index the bootstrap reads
+#   site-extra/stub/      what `get` prints (and runs) for a stub recipe
 #   docmd.config.json     the sidebar, merged into the committed base
 #
 # Run before `docmd build`. Output is regenerated each deploy rather
@@ -141,10 +142,21 @@ def yaml_scalar(s):
 # -------
 
 Package = collections.namedtuple(
-    "Package", "name recipe version license homepage source desc dir class_"
+    "Package",
+    "name recipe version license homepage source desc dir class_ kind",
 )
 
+# A stub recipe builds nothing. `refer` explains why a tool isn't here
+# and how else to get it; `delegate` offers to run upstream's own
+# installer. Their text lives beside the recipe, and is published under
+# site-extra/stub/ for `get` to fetch.
+STUB_KINDS = ("refer", "delegate")
+
 packages = []
+
+# Extra names that resolve to an existing package in the index -- `dutis`
+# installs the duti package. (alias, target package, recipe name)
+alt_names = []
 
 for entry in sorted(os.listdir(os.path.join(ROOT_DIR, "utils"))):
     dir_ = os.path.join(ROOT_DIR, "utils", entry)
@@ -153,14 +165,22 @@ for entry in sorted(os.listdir(os.path.join(ROOT_DIR, "utils"))):
         continue
 
     name = field("UNFLAB_NAME", recipe)
-    version = field("UNFLAB_VERSION", recipe)
+    kind = field("UNFLAB_KIND", recipe) or "build"
+    version = field("UNFLAB_VERSION", recipe) if kind == "build" else "-"
 
     # Line 1 of a recipe is "# <name> -- <description>".
     first = open(recipe, encoding="utf-8").readline()
     m = re.match(r"^#[^-]*--\s*(.*)$", first)
     recipe_desc = m.group(1).strip() if m else ""
 
-    for pkg in packages_of(recipe, dir_, name):
+    pkgs = packages_of(recipe, dir_, name) if kind == "build" else [name]
+
+    # "alias" names the recipe's first package; "alias:pkg" another.
+    for alt in field("UNFLAB_ALT_NAMES", recipe).split():
+        alias, _, target = alt.partition(":")
+        alt_names.append((alias, target or pkgs[0], name))
+
+    for pkg in pkgs:
         packages.append(Package(
             name=pkg,
             recipe=name,
@@ -171,6 +191,7 @@ for entry in sorted(os.listdir(os.path.join(ROOT_DIR, "utils"))):
             desc=describe(dir_, pkg, recipe_desc),
             dir=dir_,
             class_=field("UNFLAB_CLASS", recipe),
+            kind=kind,
         ))
 
 # Reconcile against a release
@@ -204,11 +225,16 @@ if manifest:
     if not shipped:
         sys.exit(f"generate-docs: no assets parsed from {manifest}")
 
-    missing = sorted({p.name for p in packages} - set(shipped))
+    # Stubs have no archive to wait for; they go live on push.
+    built = [p for p in packages if p.kind == "build"]
+    missing = sorted({p.name for p in built} - set(shipped))
     packages = [p._replace(version=shipped[p.name])
-                for p in packages if p.name in shipped]
+                if p.kind == "build" else p
+                for p in packages
+                if p.kind != "build" or p.name in shipped]
 
-    print(f"==> release manifest: {len(packages)} package(s) shipped"
+    print(f"==> release manifest: "
+          f"{sum(p.kind == 'build' for p in packages)} package(s) shipped"
           + (f", {len(missing)} not yet released: {' '.join(missing)}"
              if missing else ""))
 
@@ -217,14 +243,74 @@ os.makedirs(EXTRA_DIR, exist_ok=True)
 
 # Which recipes are big enough to be grouped -- used for both the
 # sidebar and the index table, so the two can't disagree.
-counts = collections.Counter(p.recipe for p in packages)
+counts = collections.Counter(p.recipe for p in packages if p.kind == "build")
 big = {r for r, n in counts.items() if n > NAV_GROUP_THRESHOLD}
 
 
 # Pages
 # -----
 
+def with_default_prefix(text, home):
+    """Fill in a stub's $PREFIX and $BASE as `get` would by default.
+    Commands need $HOME: a ~ inside double quotes doesn't expand."""
+    return text.replace("$PREFIX", f"{home}/.local/bin").replace("$BASE", f"{home}/.local")
+
+
+def stub_page(p):
+    """A stub's page: the message `get` prints, and for a delegate, the
+    command it offers to run."""
+    message = with_default_prefix(
+        open(os.path.join(p.dir, "message.txt"), encoding="utf-8").read(), "~")
+    out = [
+        "---",
+        f"title: {yaml_scalar(p.name)}",
+        f"description: {yaml_scalar(p.desc)}",
+        "---",
+        "",
+        f"# {p.name}",
+        "",
+        p.desc,
+        "",
+    ]
+    if p.kind == "delegate":
+        recipe = os.path.join(p.dir, "recipe.sh")
+        out += [
+            "Not built here: unflab offers to run upstream's own installer.",
+            "",
+            "```sh",
+            f"curl -fsSL {BASE_URL}/get | sh -s -- {p.name}",
+            "```",
+            "",
+            message.rstrip("\n"),
+            "",
+            "With the default prefix, it runs:",
+            "",
+            "```sh",
+            with_default_prefix(field("UNFLAB_INSTALL", recipe), "$HOME"),
+            "```",
+            "",
+            "It asks first, and only on a terminal. To remove it:",
+            "",
+            "```sh",
+            with_default_prefix(field("UNFLAB_REMOVE", recipe), "$HOME"),
+            "```",
+            "",
+        ]
+    else:
+        out += ["Not in unflab.", "", message.rstrip("\n"), ""]
+    if p.homepage:
+        out += [f"Upstream: [{p.homepage}]({p.homepage})", ""]
+    return out
+
+
 for p in packages:
+    if p.kind in STUB_KINDS:
+        with open(os.path.join(DOCS_DIR, f"{p.name}.md"), "w",
+                  encoding="utf-8") as fh:
+            fh.write("\n".join(stub_page(p)).rstrip("\n") + "\n")
+        print(f"==> docs/{p.name}.md ({p.kind})")
+        continue
+
     out = [
         "---",
         f"title: {yaml_scalar(p.name)}",
@@ -298,11 +384,57 @@ for p in packages:
 # index.txt
 # ---------
 
-# <name> <TAB> <recipe> <TAB> <version>, sorted by name. `get` reads
-# this to resolve a name to a release asset.
+# <name> <TAB> <recipe> <TAB> <version> <TAB> <kind> <TAB> <package>,
+# sorted by name. `get` reads this to resolve a name to what to fetch:
+# the archive for <package>, or the stub text published under that name.
+# The first three columns are the original format, so older readers
+# still work.
+by_name = {p.name: p for p in packages}
+rows = [(p.name, p) for p in packages]
+for alias, target, recipe_name in alt_names:
+    if alias in by_name:
+        sys.exit(f"generate-docs: alternative name {alias} (recipe "
+                 f"{recipe_name}) is already a package")
+    if target in by_name:
+        rows.append((alias, by_name[target]))
+    elif not manifest:
+        sys.exit(f"generate-docs: {recipe_name} gives {alias} as another "
+                 f"name for {target}, which it doesn't build")
+
 with open(os.path.join(EXTRA_DIR, "index.txt"), "w", encoding="utf-8") as fh:
-    for p in sorted(packages, key=lambda p: p.name):
-        fh.write(f"{p.name}\t{p.recipe}\t{p.version}\n")
+    for name, p in sorted(rows, key=lambda r: r[0]):
+        fh.write(f"{name}\t{p.recipe}\t{p.version}\t{p.kind}\t{p.name}\n")
+
+
+# Stub text
+# ---------
+
+# message.txt is what `get` prints; a delegate also needs the command it
+# offers to run and how to undo it. Published flat, so `get` fetches
+# stub/<package> and stub/<package>.install without knowing more.
+stub_dir = os.path.join(EXTRA_DIR, "stub")
+os.makedirs(stub_dir, exist_ok=True)
+for f in os.listdir(stub_dir):
+    os.remove(os.path.join(stub_dir, f))
+
+for p in packages:
+    if p.kind not in STUB_KINDS:
+        continue
+    message = os.path.join(p.dir, "message.txt")
+    if not os.path.exists(message):
+        sys.exit(f"generate-docs: stub {p.name} has no message.txt")
+    files = {p.name: open(message, encoding="utf-8").read()}
+    if p.kind == "delegate":
+        recipe = os.path.join(p.dir, "recipe.sh")
+        for key, suffix in (("UNFLAB_INSTALL", ".install"),
+                            ("UNFLAB_REMOVE", ".remove")):
+            value = field(key, recipe)
+            if not value:
+                sys.exit(f"generate-docs: delegate {p.name} has no {key}")
+            files[p.name + suffix] = value + "\n"
+    for fname, text in files.items():
+        with open(os.path.join(stub_dir, fname), "w", encoding="utf-8") as fh:
+            fh.write(text)
 
 
 # site-extra
@@ -349,14 +481,35 @@ index = []
 # Small recipes first, alphabetically. A big suite goes in its own
 # table below rather than swamping this one -- same reasoning as the
 # sidebar grouping, and driven by the same threshold.
-index += table(sorted((p for p in packages if p.recipe not in big),
+index += table(sorted((p for p in packages
+                       if p.kind == "build" and p.recipe not in big),
                       key=lambda p: p.name))
+
+def stub_table(rows):
+    out = ["| Name | What it is |", "|---|---|"]
+    for p in sorted(rows, key=lambda p: p.name):
+        out.append(f"| [`{p.name}`]({p.name}.md) | {p.desc} |")
+    return out
+
+delegates = [p for p in packages if p.kind == "delegate"]
+if delegates:
+    index += ["", "### Installed by upstream's own installer", "",
+              "Not built here. `get` shows the command and asks before "
+              "running it.", ""]
+    index += stub_table(delegates)
 
 for recipe in sorted(big):
     rows = sorted((p for p in packages if p.recipe == recipe),
                   key=lambda p: p.name)
     index += ["", f"### {recipe} ({len(rows)})", ""]
     index += table(rows)
+
+refers = [p for p in packages if p.kind == "refer"]
+if refers:
+    index += ["", "### Not in unflab", "",
+              "Asked for often enough to say why not, and where to get "
+              "them instead.", ""]
+    index += stub_table(refers)
 
 # Add the table at the first --- divider in the template.
 preamble, postamble = index_template.split("---", 1)
@@ -375,7 +528,7 @@ print("==> docs/index.md")
 # generated -- otherwise adding a recipe would mean remembering to edit
 # the config by hand.
 top = [{"title": p.name, "path": f"/{p.name}"}
-       for p in packages if p.recipe not in big]
+       for p in packages if p.kind != "refer" and p.recipe not in big]
 top.sort(key=lambda e: e["title"])
 
 groups = []
@@ -396,6 +549,13 @@ base_path = os.path.join(ROOT_DIR, "docmd.config.base.json")
 if not os.path.exists(base_path):
     sys.exit(f"generate-docs: missing {base_path} -- it holds the "
              "hand-maintained docmd settings that navigation is merged into.")
+
+refer_names = sorted(p.name for p in packages if p.kind == "refer")
+if refer_names:
+    groups.append({
+        "title": f"Not in unflab ({len(refer_names)})",
+        "children": [{"title": c, "path": f"/{c}"} for c in refer_names],
+    })
 
 config = json.load(open(base_path, encoding="utf-8"))
 config["url"] = BASE_URL
