@@ -1,0 +1,6 @@
+dig comes with BIND, a DNS server suite, and needs three libraries
+built from source for this one client.
+
+`unflab doggo` covers most of what dig is used for: any record type,
+@resolver, reverse lookups, and DoH, DoT and DoQ as well. macOS also
+has `host` and `dscacheutil -q host -a name <host>`.

@@ -1,106 +1,24 @@
-# Tools considered and not shipped
+# Tools not shipped, and not stubbed
 
-Recording these so a rejected candidate isn't silently re-proposed, and
-so the reason can be revisited if it stops being true.
+Candidates rejected without a stub, because nobody is likely to type
+the name at `unflab` or there's nothing useful to point them to.
 
-## mtr
+A tool people *will* ask for gets a stub recipe instead
+(`UNFLAB_KIND=refer` or `delegate`; see AGENTS.md), and its reasoning
+lives in that recipe's header, beside the message `get` prints.
 
-Needs raw sockets to send its own ICMP and UDP probes, which on macOS
-means installing setuid root. A `curl | sh` installer that quietly takes
-ownership of a setuid binary in the user's `PATH` is the wrong shape for
-this project — the same reason `ping` and `traceroute` were left out of
-the inetutils recipe.
+## brew
 
-## dig
-
-BIND 9.20 needs three libraries built from source: OpenSSL, libuv and
-liburcu. Six of Homebrew's eight dependencies do drop out cleanly
-(`--without-json-c --without-readline --without-jemalloc --disable-doh
---disable-geoip`, and libidn2 defaults to off), so the dependency-escape
-story is real — but liburcu is mandatory with no fallback, and libuv
-ships no pre-generated `./configure`, so it needs autotools or CMake
-before it will build at all.
-
-That is a 496-file, 43 MB build with three bundled dependencies to get
-one binary out of a DNS *server* suite — a poor ratio next to the rest
-of the roster.
-
-The deciding factor is that **`doggo` already covers most of dig's
-remit** and is shipped here: arbitrary record types (`-t`), `@resolver`
-selection, reverse lookups (`-x`), and transports dig cannot match
-without dependencies this build would drop anyway — DoH, DoT, DNSCrypt
-and DNS-over-QUIC, including HTTP/3. It is a single static Go binary
-with no dependencies at all. macOS also still ships `host` and
-`dscacheutil` for the simplest lookups.
-
-What genuinely has no substitute here is dig's exact presentation
-format — the `;; ANSWER SECTION:` output that scripts and documentation
-parse — and `+trace`. If someone needs those specifically, that is the
-argument for revisiting; wanting to look up a DNS record is not.
-
-## class-dump
-
-No licence at all. Upstream (`nygard/class-dump`) last committed in
-April 2022 and specifies no terms, so there is no right to redistribute
-a built binary. Needs a maintained, actually-licensed fork before it can
-be reconsidered.
-
-## gettext-tools
-
-The developer and translator half of GNU gettext -- `msgfmt`,
-`msgmerge`, `xgettext`, `msginit`, `recode-sr-latin` and a dozen more.
-`envsubst` from the runtime half *is* shipped (`utils/gettext`); this is
-about the rest.
-
-Upstream splits the two itself, and the sizes are the argument: the
-runtime tools are 420 KB, gettext-tools is 5.5 MB. It wants libunistring
-and libxml2 (falling back to bundled subsets compiled into
-libgettextlib, which is worse, not better), and json-c and libcurl for
-`spit`, its machine-translation client.
-
-The deciding factor is audience. These are tools for maintaining `.po`
-catalogues -- you reach for them when translating a program, not when
-writing shell. Anyone doing that work is already inside a project's
-build system, where the gettext their toolchain expects is the one
-`configure` finds, not a standalone binary in `~/.local/bin`. That is
-the opposite of `envsubst`, which is a general-purpose sh utility that
-happens to live in the same tarball.
-
-If someone genuinely needs `msgfmt` on a Mac without Homebrew, that is
-the argument for revisiting. Wanting to substitute variables in a
-template is not -- that is `envsubst`, and it is here.
-
-## kislyuk/yq (the Python yq, with xq and tomlq)
-
-Three thin wrappers that convert YAML, XML or TOML to JSON and hand it
-to `jq`, so the query language is exactly jq's. That is its real
-advantage over the `yq` shipped here (`utils/yq`, mikefarah's Go
-implementation), whose language is jq-like but separate.
-
-It's Python, though, and needs PyYAML, xmltodict and tomlkit on top.
-A fresh Mac has no usable `python3`, only the stub that offers to
-install the Command Line Tools, so this can't be a self-contained
-package without bundling an interpreter (PyInstaller or similar). That's
-a lot of weight for a wrapper, when the formats are already covered:
-`utils/yq` for YAML and TOML, and `utils/xq` and `utils/xmlstarlet`
-for XML.
-
-Note the name clash. The `xq` shipped here is sibprogrammer/xq, an XML
-and HTML formatter and extractor, which is unrelated to this package's
-`xq`.
-
-If a Python tool ever makes a compelling enough case, a PyInstaller
-build is the route to consider, and this could come back with it.
+Homebrew is the thing unflab exists to avoid needing. Its installer
+also needs sudo, and installs the Xcode Command Line Tools. Anyone who
+wants it knows where it is.
 
 ## Others, briefly
 
-- **exiftool**, **ipcalc** — Perl scripts, so they cannot be single
-  self-contained binaries.
-- **ncat** / nmap — the licence restricts redistributing derived binaries.
-- **ghostscript** — AGPL, and Homebrew drags in tesseract, an entire OCR
-  engine.
-- **cdrtools** — needs Schily's bespoke `smake`.
-- **netpbm** — non-standard build, hundreds of interdependent binaries.
-- **cmake** — no dependency problem on macOS (its only dep is system
-  ncurses), and upstream ships official macOS binaries. Excluded on
-  shape: 4 binaries plus a large `share/cmake` module tree.
+- **cdrtools**: needs Schily's own `smake` to build.
+- **netpbm**: non-standard build, and hundreds of interdependent
+  binaries.
+- **exiftool**, **ipcalc**: Perl scripts. These were rejected as unable
+  to be self-contained, but `rename` ships as a Perl script, and macOS
+  ships Perl. Worth revisiting as script-only packages: exiftool is pure
+  Perl, with a `lib/` of its own modules.

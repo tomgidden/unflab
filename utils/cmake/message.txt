@@ -1,0 +1,4 @@
+cmake has nothing to escape on macOS, and upstream publishes
+official builds: https://cmake.org/download/
+
+It's on PyPI too, so with uv (`unflab uv`): uv tool install cmake

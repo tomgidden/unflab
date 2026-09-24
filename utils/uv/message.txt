@@ -1,0 +1,6 @@
+uv manages Python, Python packages and Python command-line tools.
+Its installer puts uv and uvx in $PREFIX, and leaves your shell
+config alone. `uv self update` keeps it current.
+
+For a Python tool, `uv tool install <name>`, or `uvx <name>` to run
+one without installing it.

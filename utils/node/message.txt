@@ -1,0 +1,4 @@
+The current LTS release of Node.js, from nodejs.org, installed by a
+one-off run of n: node, npm and npx in $PREFIX.
+
+To switch versions later, `unflab n` installs n itself.

@@ -1,0 +1,5 @@
+msgfmt, xgettext and the rest of gettext-tools are for maintaining
+translation catalogues. They belong to a project's own build setup,
+where configure finds the gettext it expects.
+
+envsubst, from the same GNU package, is here: `unflab envsubst`.

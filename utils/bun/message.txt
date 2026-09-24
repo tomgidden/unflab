@@ -1,0 +1,7 @@
+bun's installer always adds itself to your shell's rc files, with no
+option to stop it, so unflab won't run it for you. To install it
+anyway:
+
+    curl -fsSL https://bun.sh/install | bash
+
+That installs to ~/.bun. `bun upgrade` keeps it current.

@@ -1,0 +1,3 @@
+Deno's installer, told to install into $BASE/bin and to skip its
+shell setup, which would otherwise offer to edit your rc files.
+`deno upgrade` keeps it current.

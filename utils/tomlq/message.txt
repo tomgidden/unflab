@@ -1,0 +1,7 @@
+tomlq comes from the Python yq package (kislyuk/yq), which needs a
+Python runtime. With uv (`unflab uv`):
+
+    uvx --from yq tomlq '.package.version' Cargo.toml
+
+That package's yq and xq are different tools from the yq and xq
+here. unflab's yq reads TOML too: yq -p toml '.package.version'

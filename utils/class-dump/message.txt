@@ -1,0 +1,2 @@
+class-dump has no licence at all, so there's no right to
+redistribute a build of it.

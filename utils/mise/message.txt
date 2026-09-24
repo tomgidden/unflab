@@ -1,0 +1,4 @@
+mise installs and switches versions of node, python, go, and many
+more, per project. Its installer puts one binary at $PREFIX/mise and
+edits nothing; `mise activate --help` explains the shell setup.
+`mise self-update` keeps it current.

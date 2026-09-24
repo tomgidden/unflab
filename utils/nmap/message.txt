@@ -1,0 +1,5 @@
+nmap's licence restricts redistributing builds of it, and ncat comes
+with nmap. Upstream publishes a macOS installer:
+https://nmap.org/download.html
+
+For most of ncat's job, `unflab socat` is here.

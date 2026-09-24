@@ -1,0 +1,5 @@
+mtr sends its own ICMP and UDP probes, which on macOS means
+installing it setuid root. An installer run with curl | sh shouldn't
+do that.
+
+macOS has `traceroute` and `ping`.

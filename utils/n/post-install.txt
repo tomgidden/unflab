@@ -1,0 +1,6 @@
+n installs Node under /usr/local unless told otherwise, which needs
+sudo. To keep it under this prefix instead, add to your shell's rc file:
+
+  export N_PREFIX="$BASE"
+
+Then `n lts` installs the current LTS release into $PREFIX.
