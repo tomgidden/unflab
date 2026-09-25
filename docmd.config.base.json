@@ -2,8 +2,8 @@
   "title": "unflab",
   "url": "https://unflab.app",
   "logo": {
-    "light": "/assets/logotype.svg",
-    "dark": "/assets/logotype.svg",
+    "light": "/assets/logotype.light.svg",
+    "dark": "/assets/logotype.dark.svg",
     "alt": "unflab",
     "href": "/"
   },
