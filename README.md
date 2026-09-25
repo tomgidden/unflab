@@ -97,6 +97,8 @@ unflab jq mlr                 # install more
 unflab --uninstall ftp        # remove one
 unflab --purge doggo          # remove it and its config files
 unflab --list                 # see what there is
+unflab --info jq              # read a utility's page
+unflab unflab                 # update this helper
 ```
 
 It is not a package manager and doesn't want to become one. It keeps no

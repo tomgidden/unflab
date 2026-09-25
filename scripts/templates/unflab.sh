@@ -76,6 +76,8 @@ $UNDERLINE${DIM}https://unflab.app/$RESET
     $COMMAND$SELF$RESET $FLAG--uninstall $NAMES ${COMMENT}remove$RESET
     $COMMAND$SELF$RESET $FLAG--purge     $NAMES ${COMMENT}remove, including config files$RESET
     $COMMAND$SELF$RESET $FLAG--list$RESET $NELLIP                     ${COMMENT}list available package names$RESET
+    $COMMAND$SELF$RESET $FLAG--info$RESET      $NAMES ${COMMENT}show a utility's page$RESET
+    $COMMAND$SELF$RESET unflab$RESET $NELLIP                     ${COMMENT}update this helper$RESET
 
   ${UNDERLINE}Options:$RESET
     $FLAG--prefix $PARAM${CO}dir${CC}$RESET ${COMMENT}install somewhere else (usually $BOLD$DEFAULT_PATH$NORMAL$DIM)$RESET

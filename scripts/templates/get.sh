@@ -85,6 +85,7 @@ interpret_arg() {
       -u | --uninstall) cmds+=",uninstall" ;;
       -x | --purge)     cmds+=",purge" ;;
       -l | --list)      cmds+=",list" ;;
+           --info)      cmds+=",info" ;;
       -p | --prefix)    want_prefix=1 ;;
            --prefix=*)  prefix="${arg#--prefix=}" ;;
       -k | --keep)      keep=1 ;;
@@ -179,6 +180,7 @@ ${UNDERLINE}Options are passed to each package's installer:${NO_UNDERLINE}
   $FLAG-u $RESET|$FLAG --uninstall     ${COMMENT}remove one or more previously installed utilities$RESET
   $FLAG-x $RESET|$FLAG --purge         ${COMMENT}remove it and its config files$RESET
   $FLAG-l $RESET|$FLAG --list          ${COMMENT}list the available utilities$RESET
+  $FLAG     --info          ${COMMENT}show a utility's page from the site$RESET
   $FLAG-p $RESET|$FLAG --prefix ${PARAM}DIR    ${COMMENT}install somewhere other than $prefix$RESET
   $FLAG-k $RESET|$FLAG --keep          ${COMMENT}keep the downloaded packages after installing$RESET
   $FLAG     --no-plain      ${COMMENT}don't create unprefixed name symlinks (eg. timeout -> gtimeout)$RESET
@@ -239,6 +241,7 @@ case "$command" in
   uninstall) uninstall=1; no_helper=1 ;;
   purge)     purge=1; uninstall=1; no_helper=1 ;;
   list)      list=1; no_helper=1 ;;
+  info)      info=1; no_helper=1 ;;
   *)         need_usage="Unknown command: $command"; echo ;;
 esac
 
@@ -281,7 +284,17 @@ if [ "$need_usage" != '' ]; then
 fi
 
 # If no utilities were specified, show the help.
-if [ -z "$utils$list" ]; then
+# `unflab unflab` reinstalls (or with --uninstall, removes) the helper.
+self=
+if [ -z "$info" ]; then
+  rest=""
+  for u in $utils; do
+    if [ "$u" = unflab ]; then self=1; else rest="$rest $u"; fi
+  done
+  utils="$rest"
+fi
+
+if [ -z "$utils$list$self" ]; then
   usage >&2
   throw "no utility named."
 fi
@@ -403,6 +416,38 @@ if [ -n "$unknown" ]; then
   throw "unknown utility:$unknown$RESET
 
 $(available_utilities)"
+fi
+
+# --info: the utility's page, as markdown, without its front matter.
+if [ -n "$info" ]; then
+  pages() {
+    for u in $utils; do
+      case " $webi " in
+        *" $u "*) printf '# %s\n\nNot in unflab, but webi has it: https://webinstall.dev/%s\n\n' "$u" "$u"; continue ;;
+      esac
+      lookup "$u"
+      if page="$($CURL "$BASE_URL/okf/concepts/$package.md" 2>/dev/null)"; then
+        printf '%s\n' "$page" |
+          awk 'body { print; next }
+               /^---[ \t]*$/ { fm = !fm; next }
+               fm || /^[ \t]*$/ { next }
+               { body = 1; print }'
+      else
+        printf '# %s\n\nNo page found at %s/%s\n' "$u" "$BASE_URL" "$package"
+      fi
+      echo ""
+    done
+  }
+  if [ ! -t 1 ]; then
+    pages
+  elif command -v glow >/dev/null 2>&1; then
+    pages | glow -p -
+  elif command -v bat >/dev/null 2>&1; then
+    pages | bat --language=md --style=plain --paging=always
+  else
+    pages | less -R
+  fi
+  exit 0
 fi
 
 # Create a temporary directory to hold the downloaded archives.
@@ -584,20 +629,46 @@ done
 # very script -- no state, no database -- and the note below says so, and
 # says it's safe to delete.
 install_helper() {
+  if [ -n "$self" ] && [ -n "$uninstall" ]; then
+    echo "==> unflab"
+    if [ -f "$prefix/unflab" ]; then
+      rm -f "$prefix/unflab" && echo "Removed $prefix/unflab" && ok="$ok unflab"
+    else
+      echo "Nothing to remove: no $prefix/unflab"
+    fi
+    return 0
+  fi
+
   # If --no-helper was specified (or --uninstall, --purge), don't install
   # the helper script.
   [ -n "$no_helper" ] && return 0
-  [ -n "$ok" ] || return 0
+  [ -n "$ok$self" ] || return 0
 
   # Download the helper script, and make sure it's valid
   helper="$TMP/unflab"
-  $CURL -o "$helper" "$BASE_URL/unflab" 2>/dev/null || return 0
-  [ -s "$helper" ] || return 0
-  head -1 "$helper" | grep -q '^#!' || return 0
+  if ! $CURL -o "$helper" "$BASE_URL/unflab" 2>/dev/null ||
+     ! head -1 "$helper" | grep -q '^#!'; then
+    [ -n "$self" ] && failed="$failed unflab"
+    return 0
+  fi
 
   # Already got one? Say whether it matches, and leave it alone either
   # way -- it might be one you've edited, and this script has no business
   # deciding that for you.
+  # Asked for by name, it is replaced. Renamed into place rather than
+  # overwritten: the running `unflab` may be this very file.
+  if [ -n "$self" ]; then
+    echo "==> unflab"
+    mkdir -p "$prefix" 2>/dev/null &&
+      cp "$helper" "$prefix/.unflab.new" &&
+      chmod +x "$prefix/.unflab.new" &&
+      mv -f "$prefix/.unflab.new" "$prefix/unflab" || {
+        rm -f "$prefix/.unflab.new"; failed="$failed unflab"; return 0; }
+    echo "Installed $prefix/unflab"
+    ok="$ok unflab"
+    return 0
+  fi
+
   if [ -f "$prefix/unflab" ]; then
     have="$(shasum -a 256 "$prefix/unflab" 2>/dev/null | awk '{print $1}')"
     want="$(shasum -a 256 "$helper" 2>/dev/null | awk '{print $1}')"
@@ -620,7 +691,7 @@ helper_note() {
   if [ -n "$helper_stale" ]; then
     echo ""
     echo "Your $prefix/unflab is out of date. No big deal -- it still"
-    echo "works. To update it:"
+    echo "works. To update it, run ${COMMAND}unflab unflab${RESET}, or:"
     echo ""
     # chmod matters: curl -o writes a plain file, so without it the
     # updated copy isn't executable and "unflab: permission denied" is a
