@@ -57,7 +57,7 @@ interpret_arg() {
         ;;
       *)
         if   [ "$want_prefix" ]; then
-          prefix="$arg"; return
+          prefix="$arg"; want_prefix=; return
         elif [ ! "$no_more_args" ]; then
           case "$arg" in
             ginstall)  utils="$utils install" ;;

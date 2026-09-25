@@ -13,7 +13,7 @@
 # If its mere presence offends you, delete it. Nothing else depends on
 # it, and the curl line keeps working:
 #
-#     curl -fsSL {{BASE_URL/get | sh -s -- <utility>
+#     curl -fsSL {{BASE_URL}}/get | sh -s -- <utility>
 #
 # Everything it can do, that line can do.
 
