@@ -13,3 +13,6 @@
 /docs/*.md
 !/docs/assets/
 /docmd.config.json
+
+# Downloaded release archives (scripts/fetch-releases.sh)
+/cache/
