@@ -469,11 +469,14 @@ index_template = open(INDEX_TEMPLATE, encoding="utf-8").read()
 index_template = index_template.replace("https://unflab.app", BASE_URL)
 
 # The README's title line becomes the logotype on the site. Still an h1,
-# with the name as its alt text.
+# with the name as its alt text; docs/assets/css/unflab.css shows the
+# image for the current theme.
 index_template = re.sub(
     r"^# unflab[ \t]*$",
-    '<h1 class="logotype"><img src="/assets/logotype.svg" alt="unflab" '
-    'style="width: 100%; max-width: 24rem; height: auto;"></h1>',
+    '<h1 class="logotype">'
+    '<img class="logotype-light" src="/assets/logotype.light.svg" alt="unflab">'
+    '<img class="logotype-dark" src="/assets/logotype.dark.svg" alt="unflab">'
+    '</h1>',
     index_template, count=1, flags=re.M)
 
 # Add a link above the first ## heading, so it's easy to find.

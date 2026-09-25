@@ -11,7 +11,10 @@
     "sidebar": {
       "collapsible": true,
       "defaultCollapsed": true
-    }
+    },
+    "customCss": [
+      "/assets/css/unflab.css"
+    ]
   },
   "layout": {
     "footer": {

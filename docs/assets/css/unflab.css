@@ -1,0 +1,15 @@
+/* The overview page's logotype: one image per theme, switched the way
+   docmd switches its sidebar logo. docmd resolves "system" to light or
+   dark on <html>, so data-theme is all that needs checking. */
+h1.logotype img {
+  width: 100%;
+  max-width: 24rem;
+  height: auto;
+}
+h1.logotype img.logotype-dark,
+html[data-theme=dark] h1.logotype img.logotype-light {
+  display: none;
+}
+html[data-theme=dark] h1.logotype img.logotype-dark {
+  display: block;
+}
