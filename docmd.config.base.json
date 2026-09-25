@@ -1,6 +1,12 @@
 {
   "title": "unflab",
   "url": "https://unflab.app",
+  "logo": {
+    "light": "/assets/logotype.svg",
+    "dark": "/assets/logotype.svg",
+    "alt": "unflab",
+    "href": "/"
+  },
   "theme": {
     "sidebar": {
       "collapsible": true,

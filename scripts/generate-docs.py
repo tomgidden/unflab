@@ -468,6 +468,14 @@ def table(rows):
 index_template = open(INDEX_TEMPLATE, encoding="utf-8").read()
 index_template = index_template.replace("https://unflab.app", BASE_URL)
 
+# The README's title line becomes the logotype on the site. Still an h1,
+# with the name as its alt text.
+index_template = re.sub(
+    r"^# unflab[ \t]*$",
+    '<h1 class="logotype"><img src="/assets/logotype.svg" alt="unflab" '
+    'style="width: 100%; max-width: 24rem; height: auto;"></h1>',
+    index_template, count=1, flags=re.M)
+
 # Add a link above the first ## heading, so it's easy to find.
 index_template = index_template.replace(
     "\n##", 
@@ -550,13 +558,8 @@ if not os.path.exists(base_path):
     sys.exit(f"generate-docs: missing {base_path} -- it holds the "
              "hand-maintained docmd settings that navigation is merged into.")
 
-refer_names = sorted(p.name for p in packages if p.kind == "refer")
-if refer_names:
-    groups.append({
-        "title": f"Not in unflab ({len(refer_names)})",
-        "children": [{"title": c, "path": f"/{c}"} for c in refer_names],
-    })
-
+# Refer stubs get pages, reached from the index's "Not in unflab"
+# table, but no sidebar entries: the sidebar lists what unflab has.
 config = json.load(open(base_path, encoding="utf-8"))
 config["url"] = BASE_URL
 config["navigation"] = (
