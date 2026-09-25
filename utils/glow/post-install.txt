@@ -1,0 +1,21 @@
+Shell completions are installed, but your shell only finds them if it
+is already looking in these directories. Nothing here changes your
+shell configuration.
+
+  zsh   $BASE/share/zsh/site-functions
+        In ~/.zshrc, ABOVE the line that runs compinit:
+
+          fpath=($BASE/share/zsh/site-functions $fpath)
+
+        Order matters: adding to fpath after compinit has run does
+        nothing at all. If compinit already ran, move the fpath line
+        above it rather than adding a second one.
+
+  bash  $BASE/share/bash-completion/completions
+        Found automatically by bash-completion 2.x via XDG.
+
+  fish  $BASE/share/fish/vendor_completions.d
+        Found automatically.
+
+Set this up once and every unflab package that ships completions
+works, not just this one.

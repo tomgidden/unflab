@@ -1,0 +1,7 @@
+bin	755	bin/glow	glow	-
+man1	644	share/man/man1/glow.1	glow.1	-
+completion-zsh	644	completion/_glow	_glow	-
+completion-bash	644	completion/glow.bash	glow	-
+completion-fish	644	completion/glow.fish	glow.fish	-
+doc	644	README.md	README.md	-
+doc	644	LICENSE	LICENSE	-
