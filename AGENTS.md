@@ -382,8 +382,8 @@ workflow, or
     gh workflow run release.yml -f dry_run=true      # just show it
 
 It refuses unless `main`'s Build run **at HEAD** is green, and unless
-something since the last tag affects an artefact (by
-`scripts/affected.sh`). It then works out the next version from the
+some recipe's build-key inputs (`scripts/build-key.sh --inputs`) have
+changed since the last tag. It then works out the next version from the
 latest tag, writes an annotated tag listing each affected recipe's
 version change (`summary` overrides the subject line), pushes the tag,
 and builds and publishes that tag in the same run. A tag pushed with

@@ -31,41 +31,51 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-RECIPE="${1:?usage: build-key.sh <recipe> [image-tag]}"
+
+# --inputs lists the files the key covers, repo-relative, instead of
+# hashing them. The release workflow diffs them against the last tag to
+# say which recipes a release will rebuild.
+LIST=
+[[ "${1:-}" == --inputs ]] && { LIST=1; shift; }
+
+RECIPE="${1:?usage: build-key.sh [--inputs] <recipe> [image-tag]}"
 IMAGE="${2:-$(uname -m)-$(sw_vers -productVersion 2>/dev/null || echo unknown)}"
 
 [[ -d "$ROOT_DIR/utils/$RECIPE" ]] || {
   echo "build-key.sh: no such recipe: $RECIPE" >&2; exit 1; }
 
-{
-  echo "image=$IMAGE"
-
+inputs() {
   # Sorted for stability: find's order is filesystem-dependent, and a
   # key that changes with directory order would defeat the whole point.
   find "$ROOT_DIR/utils/$RECIPE" -type f | sort | while read -r f; do
-    printf '%s ' "${f#"$ROOT_DIR/"}"
-    shasum -a 256 "$f" | awk '{print $1}'
+    printf '%s\n' "${f#"$ROOT_DIR/"}"
   done
 
-  for f in scripts/build.sh scripts/package.sh scripts/verify.sh \
-           scripts/templates/install.sh; do
-    printf '%s ' "$f"
-    shasum -a 256 "$ROOT_DIR/$f" | awk '{print $1}'
-  done
+  printf '%s\n' scripts/build.sh scripts/package.sh scripts/verify.sh \
+    scripts/templates/install.sh
 
   # Only the helpers this recipe sources. Hashing all of scripts/lib
   # would make an OpenSSL bump rebuild every package in the repo,
   # which is the opposite of the point.
   #
   # The `|| true` is load-bearing: most recipes source no helper at all,
-  # and a grep that matches nothing exits 1. Under `set -euo pipefail`
-  # that became the exit status of this whole brace group, so build-key
-  # printed a perfectly good key and then exited 1 -- which killed the
-  # release workflow's step for all fourteen recipes without a helper.
+  # and a grep that matches nothing exits 1, which under pipefail fails
+  # the whole key.
   { grep -ho 'scripts/lib/[A-Za-z0-9_-]*\.sh' \
       "$ROOT_DIR/utils/$RECIPE/recipe.sh" 2>/dev/null || true; } | sort -u |
   while read -r rel; do
-    [[ -f "$ROOT_DIR/$rel" ]] || continue
+    [[ -f "$ROOT_DIR/$rel" ]] && printf '%s\n' "$rel"
+  done
+}
+
+if [[ -n "$LIST" ]]; then
+  inputs
+  exit 0
+fi
+
+{
+  echo "image=$IMAGE"
+  inputs | while read -r rel; do
     printf '%s ' "$rel"
     shasum -a 256 "$ROOT_DIR/$rel" | awk '{print $1}'
   done

@@ -81,9 +81,16 @@ jobs:
             *) next="v$x.$y.$((z + 1))" ;;
           esac
 
-          # What the release will rebuild, by the same rules CI uses.
-          # shellcheck disable=SC2046
-          recipes=$(scripts/affected.sh $(git diff --name-only "$prev" HEAD) 2>/dev/null || true)
+          # What the release will rebuild: recipes whose build-key
+          # inputs changed since the last tag. Not affected.sh, which
+          # also rebuilds for CI-only changes that alter no artefact.
+          recipes=""
+          for r in $(scripts/resolve.sh list-recipes); do
+            # shellcheck disable=SC2046
+            if ! git diff --quiet "$prev" HEAD -- $(scripts/build-key.sh --inputs "$r"); then
+              recipes="$recipes $r"
+            fi
+          done
           if [ -z "$recipes" ]; then
             echo "nothing since $prev changes an artefact -- no release needed" >&2
             exit 1
