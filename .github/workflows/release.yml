@@ -1,6 +1,8 @@
 name: Release
 
-# Tag to trigger a release
+# Run by hand (Actions > Release > Run workflow, or `gh workflow run
+# release.yml`) to tag main and release it; pushing a v* tag yourself
+# still works too.
 #
 # The release job only runs if every recipe succeeded, so a partial
 # release can't be published.
@@ -8,7 +10,20 @@ name: Release
 on:
   push:
     tags: ["v*"]
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Z for packages, Y for the installer or build scripts"
+        type: choice
+        options: [Z, Y]
+        default: Z
+      summary:
+        description: "Tag subject after the version (blank = recipes changed)"
+        required: false
+      dry_run:
+        description: "Say what would be tagged, and stop"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -17,13 +32,110 @@ permissions:
   actions: write
 
 jobs:
+  # Only when run by hand: tag main's HEAD, then release that tag below.
+  # The tag is made here rather than pushed for another run to pick up,
+  # because a push made with GITHUB_TOKEN triggers no workflow.
+  tag:
+    name: Tag main
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - id: tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUMP: ${{ inputs.bump }}
+          SUMMARY: ${{ inputs.summary }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          head=$(git rev-parse HEAD)
+
+          if git tag --points-at "$head" | grep -q '^v'; then
+            echo "main ($head) is already tagged: $(git tag --points-at "$head")" >&2
+            exit 1
+          fi
+
+          # Green at HEAD, not merely recently: build.yml diffs from the
+          # last green commit, so a pass here covers everything since.
+          state=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow build.yml \
+                    --branch main --commit "$head" --limit 20 \
+                    --json event,status,conclusion \
+                    -q '[.[] | select(.event != "pull_request")][0] | "\(.status) \(.conclusion)"')
+          case "$state" in
+            "completed success") ;;
+            "") echo "no Build run on main at $head" >&2; exit 1 ;;
+            *)  echo "Build on main at $head is '$state', not green" >&2; exit 1 ;;
+          esac
+
+          prev=$(git tag -l 'v*' --sort=-v:refname | head -1)
+          IFS=. read -r x y z <<< "${prev#v}"
+          case "$BUMP" in
+            Y) next="v$x.$((y + 1)).0" ;;
+            *) next="v$x.$y.$((z + 1))" ;;
+          esac
+
+          # What the release will rebuild, by the same rules CI uses.
+          # shellcheck disable=SC2046
+          recipes=$(scripts/affected.sh $(git diff --name-only "$prev" HEAD) 2>/dev/null || true)
+          if [ -z "$recipes" ]; then
+            echo "nothing since $prev changes an artefact -- no release needed" >&2
+            exit 1
+          fi
+
+          ver() { git show "$1:utils/$2/recipe.sh" 2>/dev/null |
+                    sed -n 's/^UNFLAB_VERSION=//p' | head -1; }
+          body=""
+          names=""
+          for r in $recipes; do
+            old=$(ver "$prev" "$r"); new=$(ver HEAD "$r")
+            if [ -z "$old" ]; then line="$r $new (new)"
+            elif [ "$old" != "$new" ]; then line="$r $old -> $new"
+            else line="$r $new (rebuilt)"
+            fi
+            body="$body- $line"$'\n'
+            names="$names, $r"
+          done
+          names=${names#, }
+          [ "$(echo "$recipes" | wc -w)" -gt 8 ] && names="$(echo "$recipes" | wc -w | tr -d ' ') recipes"
+
+          msg="$next -- ${SUMMARY:-$names}"$'\n\n'"$body"
+          echo "$msg"
+
+          if [ "$DRY_RUN" = true ]; then
+            echo "dry run: not tagging"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          printf '%s' "$msg" | git tag -a "$next" -F -
+          git push origin "$next"
+          echo "tag=$next" >> "$GITHUB_OUTPUT"
+
   recipes:
     name: List recipes
+    needs: tag
+    # A skipped tag job (a tag push) must not skip everything after it,
+    # hence the explicit condition here and on each job below. A dry run
+    # tags nothing, and stops here.
+    if: ${{ !failure() && !cancelled() && (github.event_name != 'workflow_dispatch' || needs.tag.outputs.tag != '') }}
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.list.outputs.matrix }}
+      ref: ${{ steps.ref.outputs.ref }}
     steps:
+      - id: ref
+        run: echo "ref=${{ needs.tag.outputs.tag || github.ref_name }}" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.ref.outputs.ref }}
       - id: list
         run: |
           set -euo pipefail
@@ -35,6 +147,7 @@ jobs:
   build:
     name: ${{ matrix.recipe }} (${{ matrix.target.arch }})
     needs: recipes
+    if: ${{ !failure() && !cancelled() && needs.recipes.result == 'success' }}
     strategy:
       fail-fast: false
       matrix:
@@ -48,6 +161,8 @@ jobs:
     runs-on: ${{ matrix.target.runner }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.recipes.outputs.ref }}
 
       # Skip the compile when nothing that determines the artefact has
       # changed. The key covers the recipe directory, the shared build
@@ -140,10 +255,13 @@ jobs:
           include-hidden-files: true
 
   release:
-    needs: build
+    needs: [recipes, build]
+    if: ${{ !failure() && !cancelled() && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.recipes.outputs.ref }}
       - uses: actions/download-artifact@v8
         with:
           pattern: dist-*
@@ -206,6 +324,7 @@ jobs:
 
       - uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ needs.recipes.outputs.ref }}
           files: |
             dist/*.tar.gz
             dist/SHA256SUMS-*.txt

@@ -17,6 +17,8 @@ on:
 
 permissions:
   contents: read
+  # To find the last green build on main; see the recipes job.
+  actions: read
 
 concurrency:
   group: build-${{ github.ref }}
@@ -34,6 +36,8 @@ jobs:
           # Needed to diff against the base branch below.
           fetch-depth: 0
       - id: list
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           all=$(scripts/resolve.sh list-recipes)
@@ -56,16 +60,30 @@ jobs:
                 "origin/${{ github.base_ref }}"...HEAD)
               ;;
             push)
-              # A merge commit's first parent is the previous main, so
-              # this is the diff the merge introduced. On a force-push
-              # or a new branch the before-SHA is all zeroes and there
-              # is nothing to compare against -- build everything.
-              before="${{ github.event.before }}"
-              if [ -n "$before" ] && [ "$before" != "0000000000000000000000000000000000000000" ] \
-                 && git cat-file -e "$before^{commit}" 2>/dev/null; then
-                changed=$(git diff --name-only "$before" HEAD)
+              # Diff against the last commit a Build run on main passed
+              # at, not the previous push. Every push to main shares one
+              # concurrency group, so a merge cancels the build of the
+              # one before it; diffing from the previous push would
+              # then leave that merge built by nothing. A cancelled or
+              # failed run never becomes the baseline, so its changes
+              # carry forward until a run passes.
+              #
+              # No green run, or one not in this history (a force-push)
+              # -- build everything.
+              base=$(gh run list --repo "$GITHUB_REPOSITORY" \
+                       --workflow build.yml --branch main --status success \
+                       --limit 20 --json headSha,event \
+                       -q '[.[] | select(.event != "pull_request")][0].headSha // empty' \
+                     || true)
+              if [ -n "$base" ] && git cat-file -e "$base^{commit}" 2>/dev/null \
+                 && git merge-base --is-ancestor "$base" HEAD; then
+                echo "Last green build on main: $base"
+                changed=$(git diff --name-only "$base" HEAD)
+                # Already green at this very commit (a re-run): the
+                # diff is empty, and there is nothing new to prove.
+                [ -n "$changed" ] || { names=""; }
               else
-                echo "No usable before-SHA -- building everything."
+                echo "No usable green build on main -- building everything."
               fi
               ;;
           esac

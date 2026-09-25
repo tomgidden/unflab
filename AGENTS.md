@@ -354,46 +354,49 @@ so a file added to the repo can never silently skip a build.
 ### Batch package changes into one Z
 
 Several bumps arriving as separate PRs should become **one** Z, not one
-each. Merge them all, let `main` build green, then tag once.
+each. Merge them all, let `main` build green, then release once.
 
-This is not only tidiness. `build.yml` uses
-`group: build-${{ github.ref }}` with `cancel-in-progress: true`, and
-every push to `main` shares that group — so merging a second PR
-**cancels the first one's build mid-flight**. A cancelled run reads as
-"not failed" at a glance, so the honest state is that neither package
-got verified.
+Merging in quick succession is safe. `build.yml` uses
+`group: build-${{ github.ref }}` with `cancel-in-progress: true`, so
+each merge to `main` cancels the build of the one before it — but a
+push build diffs against the **last commit a Build run on main passed
+at**, not the previous push. A cancelled or failed run never becomes
+that baseline, so whatever it was building is carried into the next
+run's diff until one passes. Green at HEAD therefore means everything
+since the last green commit has been built.
 
-Worse, a cancelled run leaves a real gap: change detection builds only
-what a push's diff touched, so if merge B cancels merge A's run, B's
-run builds only B. A was never built by anything. (This happened while
-adding typst: a shfmt merge cancelled the typst build, and the
-replacement run built only shfmt.)
+Each bump PR is also built on its own, in its own concurrency group,
+before it is merged. The build on `main` is the check that they still
+build together.
 
-`release.yml` has no concurrency group at all, so several tags in quick
-succession do not cancel each other — they run concurrently and fight
-over a small macOS runner pool instead.
-
-The rhythm that avoids all of it:
-
-1. Merge the PRs you want in the batch.
-2. Wait for `main` to go green **once**, after the last merge — that
-   run's diff covers every recipe the batch touched.
-3. If an earlier run was cancelled and you need certainty about a
-   recipe it was building, run `build.yml` via `workflow_dispatch`,
-   which has no base diff and so builds everything.
-4. Tag one Z.
+`release.yml` has no concurrency group at all, so several releases in
+quick succession run concurrently and fight over a small macOS runner
+pool. Another reason for one Z.
 
 ### Cutting one
 
-1. Confirm `main` is green and your working tree is clean and in sync.
-2. `git tag -a vX.Y.Z -F -` with a message naming what changed and why
-   — `git tag -l -n1` shows the house style.
-3. `git push origin vX.Y.Z`.
-4. Watch the run. The release job only publishes if every recipe
-   succeeded, so a partial release cannot ship.
+Run the **Release** workflow by hand: Actions → Release → Run
+workflow, or
 
-Pushing a tag is public and hard to walk back. Confirm with the user
-before pushing one unless they have already asked for it.
+    gh workflow run release.yml -f bump=Z            # or Y
+    gh workflow run release.yml -f dry_run=true      # just show it
+
+It refuses unless `main`'s Build run **at HEAD** is green, and unless
+something since the last tag affects an artefact (by
+`scripts/affected.sh`). It then works out the next version from the
+latest tag, writes an annotated tag listing each affected recipe's
+version change (`summary` overrides the subject line), pushes the tag,
+and builds and publishes that tag in the same run. A tag pushed with
+`GITHUB_TOKEN` triggers no workflow, which is why it is one run and not
+two.
+
+Pushing a `vX.Y.Z` tag yourself still works the old way — `git tag -a
+vX.Y.Z -F -`, house style in `git tag -l -n1` — and runs the same
+release. Either way the release job only publishes if every recipe
+succeeded, so a partial release cannot ship.
+
+Releasing is public and hard to walk back. Confirm with the user
+before running it unless they have already asked for it.
 
 ## Planned: a pyinstaller toolchain
 
