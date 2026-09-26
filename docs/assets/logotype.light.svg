@@ -4,8 +4,8 @@
       path {
       stroke-linecap:round;
       stroke-linejoin:round;
-      fill:#678;
-      stroke:#bcd;
+      fill:#787777;
+      stroke:#cdcccc;
       stroke-width:40px;
       }
     </style>

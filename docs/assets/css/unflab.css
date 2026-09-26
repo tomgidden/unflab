@@ -1,15 +1,121 @@
-/* The overview page's logotype: one image per theme, switched the way
-   docmd switches its sidebar logo. docmd resolves "system" to light or
-   dark on <html>, so data-theme is all that needs checking. */
+:root {
+  --hue-base: 40deg;
+  --hue-link: 50deg;
+  --hue-base-dark: var(--hue-base);
+  --hue-link-dark: var(--hue-link);
+
+  --bg-color: hsl(var(--hue-base) 100% 95%);
+  --text-color: hsl(var(--hue-base) 1.6% 12.4%);
+  --text-muted: hsl(var(--hue-base) 4.5% 43.9%);
+  --text-heading: hsl(var(--hue-base) 10% 3.9%);
+  --link-color: hsl(var(--hue-link) 94.5% 42.9%);
+  --link-color-hover: hsl(var(--hue-link) 88.4% 37.3%);
+  --border-color: hsl(var(--hue-base) 5.9% 90%);
+  --border-color-codeblock: hsl(var(--hue-base) 0% 3.9% / 9%);
+  --border-color-hover: hsl(var(--hue-base));
+  --header-bg: hsl(var(--hue-base) 100% 90%);
+  --header-border: hsl(var(--hue-base) 5.9% 90%);
+  --sidebar-bg: hsl(var(--hue-base) 100% 90%);
+  --sidebar-text: hsl(var(--hue-base) 5.3% 26.1%);
+  --sidebar-link-active-bg: hsl(var(--hue-link) 93.2% 65.5% / 11%);
+  --sidebar-link-active-text: hsl(var(--hue-link) 5.9% 10%);
+  --code-bg: hsl(var(--hue-base) 0% 98%);
+  --code-text: hsl(var(--hue-base) 3.7% 15.9%);
+  --sponsor-red: hsl(349.7 89.2% 60.2%);
+  --font-family-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-family-mono: "JetBrains Mono", SFMono-Regular, Consolas, Menlo, monospace;
+  --font-size-base: 16px;
+  --line-height-relaxed: 1.625;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --shadow-sm: 0 2px 5px -3px hsl(0 0% 0% / 14.9%);
+  --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 10%), 0 2px 4px -1px hsl(0 0% 0% / 6%);
+  --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 10%), 0 4px 6px -2px hsl(0 0% 0% / 5%);
+  --space-1: .25rem;
+  --space-2: .5rem;
+  --space-3: .75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --ui-element-size: 32px;
+  --sidebar-width: 260px;
+  --menubar-h: 44px;
+  --header-h: 44px;
+  --scrollbar-thumb: hsl(var(--hue-base) 5.9% 90%);
+  --scrollbar-thumb-hover: hsl(var(--hue-base) 5% 64.9%);
+  --sidebar-group-bg: hsl(203.5 33.3% 30% / 5.1%);
+  --sidebar-group-border: transparent;
+  --image-shadow: 0 0 10px -3px hsl(0 0% 0% / 13%);
+  --image-border-radius: 12px;
+  --image-border-color: hsl(0 0% 92.9%);
+  --glow-color: hsl(var(--hue-link) 94.5% 42.9% / 10%);
+  --glow-color-strong: hsl(var(--hue-link) 94.5% 42.9% / 18%);
+  --halo-soft: 0 0 0 4px hsl(var(--hue-link) 94.5% 42.9% / 10%);
+  --docmd-tooltip-bg: hsl(var(--hue-base) 32.6% 17.5%);
+  --docmd-tooltip-color: hsl(var(--hue-base) 40% 98%);
+  --docmd-tooltip-border: hsl(var(--hue-base) 25% 26.7%)
+  color-scheme: light;
+}
+
+:root[data-theme=dark] {
+  --bg-color: hsl(var(--hue-base-dark) 7.1% 5.5%);
+  --text-color: hsl(var(--hue-base-dark) 4.9% 83.9%);
+  --text-muted: hsl(var(--hue-base-dark) 4.9% 60%);
+  --text-heading: hsl(0 0% 98%);
+  --link-color: hsl(var(--hue-link-dark) 93.2% 59.6%);
+  --border-color: hsl(var(--hue-base-dark) 3.7% 15.9%);
+  --border-color-codeblock: hsl(0 0% 98% / 9%);
+  --header-bg: hsl(var(--hue-base-dark) 4.8% 8.2% / 68%);
+  --header-border: hsl(var(--hue-base-dark) 3.7% 15.9%);
+  --sidebar-bg: hsl(var(--hue-base-dark) 5.6% 7.1%);
+  --sidebar-text: hsl(var(--hue-base-dark) 4.9% 83.9%);
+  --sidebar-link-active-bg: hsl(var(--hue-base-dark) 6.2% 12.5%);
+  --sidebar-link-active-text: hsl(0 0% 100%);
+  --code-bg: hsl(var(--hue-base-dark) 8.3% 9.4%);
+  --code-text: hsl(var(--hue-base-dark) 5.9% 90%);
+  --sponsor-red: hsl(346.8 77.2% 49.8%);
+  --scrollbar-thumb: hsl(var(--hue-base-dark) 3.7% 15.9%);
+  --scrollbar-thumb-hover: hsl(var(--hue-base-dark) 5.2% 33.9%);
+  --glow-color: hsl(var(--hue-link-dark) 93.2% 59.6% / 18%);
+  --glow-color-strong: hsl(var(--hue-link-dark) 93.2% 59.6% / 28%);
+  --halo-soft: 0 0 0 4px hsl(var(--hue-link-dark) 93.2% 59.6% / 18%);
+  --docmd-tooltip-bg: hsl(var(--hue-base-dark) 47.4% 11.2%);
+  --docmd-tooltip-color: hsl(var(--hue-base-dark) 40% 98%);
+  --docmd-tooltip-border: hsl(var(--hue-base-dark) 25% 26.7%);
+  color-scheme: dark
+}
+
 h1.logotype img {
   width: 100%;
   max-width: 24rem;
   height: auto;
 }
+
+.sidebar-header .logo-link img {
+  max-height: 2.5rem;
+}
+
 h1.logotype img.logotype-dark,
 html[data-theme=dark] h1.logotype img.logotype-light {
   display: none;
 }
+
 html[data-theme=dark] h1.logotype img.logotype-dark {
   display: block;
+}
+
+h1.logotype img,
+.sidebar-header .logo-link img {
+  filter: saturate(6000%) hue-rotate(var(--hue-link));
+}
+
+.sidebar-header {
+  background-color: var(--sidebar-bg);
+}
+
+body {
+  background-color: var(--bg-color);
 }
