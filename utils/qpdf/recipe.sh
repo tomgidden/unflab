@@ -14,12 +14,12 @@
 # already has.
 
 UNFLAB_NAME=qpdf
-UNFLAB_VERSION=12.4.1
+UNFLAB_VERSION=12.4.2
 UNFLAB_HOMEPAGE=https://qpdf.sourceforge.io/
 UNFLAB_LICENSE=Apache-2.0
-UNFLAB_SOURCE=https://github.com/qpdf/qpdf/releases/download/v12.4.1/qpdf-12.4.1.tar.gz
+UNFLAB_SOURCE=https://github.com/qpdf/qpdf/releases/download/v12.4.2/qpdf-12.4.2.tar.gz
 UNFLAB_CHECK=github:qpdf/qpdf
-UNFLAB_SHA256=f045aa277be2356ff53a89a8622945958291177d2483afc20ede7c8a8cd3873c
+UNFLAB_SHA256=8a58af5b6141319287c1883bec8bd1bd545b7567b7fc5e6ce5d25a1c85f36397
 UNFLAB_ATTEST='sha256:https://github.com/qpdf/qpdf/releases/download/v$V/qpdf-$V.sha256'
 UNFLAB_TOOLCHAIN="c c++ cmake make"
 UNFLAB_CLASS=1
