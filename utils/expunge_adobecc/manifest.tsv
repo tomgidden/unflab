@@ -1,3 +1,3 @@
-bin	755	bin/adobekill	adobekill	-
+bin	755	bin/expunge_adobecc	expunge_adobecc	-
 doc	644	README.md	README.md	-
 doc	644	LICENSE	LICENSE	-

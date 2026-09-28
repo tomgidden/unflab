@@ -1,9 +1,9 @@
-# adobekill (unflab build)
+# expunge_googleupdate (unflab build)
 
-`adobekill` kills off all Adobe Creative Cloud jobs
+`expunge_googleupdate` kills off pernicious Google Software Update (a.k.a. "keystone") jobs and agents
 
 This is a standalone build for macOS: one script, no dependencies (except,
-perhaps Adobe Creative Cloud...), not even a repo.
+perhaps Google Chrome or similar...), not even a repo.
 
 ## Install
 
@@ -20,7 +20,7 @@ to add it — it won't edit your shell config without asking.
 
 ## Upstream
 
-- Home: https://gist.github.com/tomgidden/6a9f083988f7d4505d4e38674d416c04
-- Source: https://gist.github.com/tomgidden/6a9f083988f7d4505d4e38674d416c04
+- Home: https://gist.github.com/tomgidden/6cfc0e2a3faa0300edd86e36c35a18f7
+- Source: https://gist.github.com/tomgidden/6cfc0e2a3faa0300edd86e36c35a18f7
 - Version: 1
 - Licence: MIT (see `LICENSE`)
