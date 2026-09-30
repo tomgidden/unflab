@@ -24,6 +24,10 @@ If either check fails, nothing is installed. CI makes the same two
 checks, and also confirms that every binary links only against `/usr/lib`
 and `/System/`.
 
+We'd encourage supporting Martin's efforts and hosting costs with a
+donation to his [PayPal account](https://paypal.me/martinr92), as 
+indicated at the bottom of his build page.
+
 ## What's in it
 
 Codecs and libraries: x264, x265 (8, 10 and 12-bit), aom, dav1d,
@@ -56,4 +60,9 @@ encoders) and AudioToolbox (`aac_at`).
   ffplay install their own page and their `-all` page, which already
   includes the component text.
 - **Versions.** A new FFmpeg release reaches unflab only after Martin
-  Riedl has published a build of it.
+  Riedl has published a build of it, and it's been noticed and merged
+  into unflab.
+- **More features.** If you have need for a more fully-featured build
+  of FFmpeg, in addition to their [standard `ffmpeg` formula](https://formulae.brew.sh/formula/ffmpeg)
+  which is of similar capability to this version, Homebrew have a more
+  extensive [`ffmpeg-full` formula](https://formulae.brew.sh/formula/ffmpeg-full).
