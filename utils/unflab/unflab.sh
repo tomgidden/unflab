@@ -95,4 +95,4 @@ USAGE
     ;;
 esac
 
-curl -fsSL --connect-timeout 15 --max-time 60 "$BASE_URL/get" | sh -s -- "$@"
+curl -fsSL --connect-timeout 15 --max-time 60 "$BASE_URL/get" | sh -s -- "$@"; exit $?

@@ -7,6 +7,7 @@
 
 UNFLAB_NAME=miller
 UNFLAB_VERSION=6.22.0
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://miller.readthedocs.io/
 UNFLAB_LICENSE=BSD-2-Clause
 UNFLAB_SOURCE=https://github.com/johnkerl/miller/archive/refs/tags/v6.22.0.tar.gz

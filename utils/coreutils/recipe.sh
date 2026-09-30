@@ -7,6 +7,7 @@
 
 UNFLAB_NAME=coreutils
 UNFLAB_VERSION=9.12
+UNFLAB_VERSION_FLAG="--version test=-"
 UNFLAB_HOMEPAGE=https://www.gnu.org/software/coreutils/
 UNFLAB_LICENSE=GPL-3.0-or-later
 UNFLAB_SOURCE=https://ftp.gnu.org/gnu/coreutils/coreutils-9.12.tar.xz

@@ -7,6 +7,7 @@
 
 UNFLAB_NAME=tree
 UNFLAB_VERSION=2.3.2
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://oldmanprogrammer.net/source.php?dir=projects/tree
 UNFLAB_LICENSE=GPL-2.0-or-later
 UNFLAB_SOURCE=https://gitlab.com/OldManProgrammer/unix-tree/-/archive/2.3.2/unix-tree-2.3.2.tar.gz

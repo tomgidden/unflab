@@ -7,6 +7,7 @@
 
 UNFLAB_NAME=jq
 UNFLAB_VERSION=1.8.2
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://jqlang.github.io/jq/
 UNFLAB_LICENSE=MIT
 UNFLAB_SOURCE=https://github.com/jqlang/jq/releases/download/jq-1.8.2/jq-1.8.2.tar.gz

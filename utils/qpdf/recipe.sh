@@ -15,6 +15,7 @@
 
 UNFLAB_NAME=qpdf
 UNFLAB_VERSION=12.4.2
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://qpdf.sourceforge.io/
 UNFLAB_LICENSE=Apache-2.0
 UNFLAB_SOURCE=https://github.com/qpdf/qpdf/releases/download/v12.4.2/qpdf-12.4.2.tar.gz

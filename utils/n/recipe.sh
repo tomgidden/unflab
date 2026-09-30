@@ -11,6 +11,7 @@
 
 UNFLAB_NAME=n
 UNFLAB_VERSION=10.2.0
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://github.com/tj/n
 UNFLAB_LICENSE=MIT
 UNFLAB_SOURCE=https://github.com/tj/n/archive/refs/tags/v10.2.0.tar.gz

@@ -9,6 +9,7 @@
 
 UNFLAB_NAME=tmux
 UNFLAB_VERSION=3.7c
+UNFLAB_VERSION_FLAG=-V
 UNFLAB_HOMEPAGE=https://tmux.github.io/
 UNFLAB_LICENSE=ISC
 UNFLAB_SOURCE=https://github.com/tmux/tmux/releases/download/3.7c/tmux-3.7c.tar.gz

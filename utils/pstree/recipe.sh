@@ -5,6 +5,7 @@
 
 UNFLAB_NAME=pstree
 UNFLAB_VERSION=2.40
+UNFLAB_VERSION_FLAG=-h
 UNFLAB_HOMEPAGE=https://github.com/FredHucht/pstree
 UNFLAB_LICENSE=GPL-3.0
 UNFLAB_SOURCE=https://github.com/FredHucht/pstree/archive/refs/tags/v2.40.tar.gz

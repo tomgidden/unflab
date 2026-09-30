@@ -9,6 +9,7 @@
 
 UNFLAB_NAME=doggo
 UNFLAB_VERSION=1.4.0
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://doggo.mrkaran.dev/
 UNFLAB_LICENSE=GPL-3.0-or-later
 UNFLAB_SOURCE=https://github.com/mr-karan/doggo/archive/refs/tags/v1.4.0.tar.gz

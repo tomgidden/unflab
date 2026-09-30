@@ -21,6 +21,7 @@
 
 UNFLAB_NAME=webi
 UNFLAB_VERSION=1.3.2
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://webinstall.dev
 UNFLAB_LICENSE=MPL-2.0
 UNFLAB_SOURCE=https://github.com/webinstall/webi-installers/archive/refs/tags/v1.3.2.tar.gz

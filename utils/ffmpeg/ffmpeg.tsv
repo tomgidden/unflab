@@ -1,0 +1,14 @@
+bin	755	bin/ffmpeg	ffmpeg	-
+man1	644	share/man/man1/ffmpeg.1	ffmpeg.1	-
+man1	644	share/man/man1/ffmpeg-all.1	ffmpeg-all.1	-
+man1	644	share/man/man1/ffmpeg-utils.1	ffmpeg-utils.1	-
+man1	644	share/man/man1/ffmpeg-scaler.1	ffmpeg-scaler.1	-
+man1	644	share/man/man1/ffmpeg-resampler.1	ffmpeg-resampler.1	-
+man1	644	share/man/man1/ffmpeg-codecs.1	ffmpeg-codecs.1	-
+man1	644	share/man/man1/ffmpeg-bitstream-filters.1	ffmpeg-bitstream-filters.1	-
+man1	644	share/man/man1/ffmpeg-formats.1	ffmpeg-formats.1	-
+man1	644	share/man/man1/ffmpeg-protocols.1	ffmpeg-protocols.1	-
+man1	644	share/man/man1/ffmpeg-devices.1	ffmpeg-devices.1	-
+man1	644	share/man/man1/ffmpeg-filters.1	ffmpeg-filters.1	-
+doc	644	README.md	README.md	-
+doc	644	LICENSE	LICENSE	-

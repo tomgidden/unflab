@@ -64,10 +64,26 @@ jobs:
 
           # Green at HEAD, not merely recently: build.yml diffs from the
           # last green commit, so a pass here covers everything since.
-          state=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow build.yml \
-                    --branch main --commit "$head" --limit 20 \
-                    --json event,status,conclusion \
-                    -q '[.[] | select(.event != "pull_request")][0] | "\(.status) \(.conclusion)"')
+          head_run() {
+            gh run list --repo "$GITHUB_REPOSITORY" --workflow build.yml \
+              --branch main --commit "$head" --limit 20 \
+              --json databaseId,event,status,conclusion \
+              -q "[.[] | select(.event != \"pull_request\")][0] | $1"
+          }
+
+          # Dispatched straight after a merge, HEAD's Build is usually
+          # still queued or running. Wait for it rather than refusing: if
+          # a later push cancels it, it finishes 'cancelled' and the
+          # release is refused below all the same.
+          id=$(head_run '.databaseId // empty')
+          if [ -n "$id" ] && [ "$(head_run .status)" != completed ]; then
+            echo "Waiting for Build run $id on $head to finish"
+            timeout 3h gh run watch "$id" --repo "$GITHUB_REPOSITORY" \
+              --interval 60 >/dev/null || true
+          fi
+
+          state=
+          [ -n "$id" ] && state=$(head_run '"\(.status) \(.conclusion)"')
           case "$state" in
             "completed success") ;;
             "") echo "no Build run on main at $head" >&2; exit 1 ;;

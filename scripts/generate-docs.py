@@ -114,6 +114,40 @@ def describe(dir_, pkg, recipe_desc):
     return recipe_desc
 
 
+def fetch_rows(p):
+    """
+    A package's rows from its recipe's fetch.tsv -- binaries the installer
+    downloads rather than finds in the archive -- as (src, url, sha256,
+    member, team).
+    """
+    path = os.path.join(p.dir, "fetch.tsv")
+    if not os.path.exists(path):
+        return []
+    rows = []
+    for line in open(path, encoding="utf-8"):
+        f = line.rstrip("\n").split("\t")
+        if len(f) >= 6 and not f[0].startswith("#") and f[0] == p.name:
+            rows.append(tuple(f[1:6]))
+    return rows
+
+
+def version_flag(p):
+    """
+    The flag that makes this package's binary print its version, from
+    UNFLAB_VERSION_FLAG: a bare flag is the recipe's default, `name=flag`
+    overrides it for one binary, and `-` means there is none.
+    """
+    default, flag = "", None
+    for tok in field("UNFLAB_VERSION_FLAG", os.path.join(p.dir, "recipe.sh")).split():
+        name, eq, value = tok.partition("=")
+        if not eq:
+            default = tok
+        elif name == p.name:
+            flag = value
+    flag = default if flag is None else flag
+    return "" if flag == "-" else flag
+
+
 CLASS_TEXT = {
     "1": "Escapes a dependency tree: Homebrew's build pulls in libraries "
          "this tool never touches at run time.",
@@ -342,9 +376,18 @@ for p in packages:
     ]
     if p.homepage:
         out.append(f"| Upstream | [{p.homepage}]({p.homepage}) |")
-    out += [
-        f"| Source | [`{os.path.basename(p.source)}`]({p.source}) |",
-    ]
+    if p.source == "local":
+        tree = f"https://github.com/{REPO}/tree/main/utils/{p.recipe}"
+        out.append(f"| Source | [`utils/{p.recipe}`]({tree}) in this repository |")
+    else:
+        out.append(f"| Source | [`{os.path.basename(p.source)}`]({p.source}) |")
+    fetched = fetch_rows(p)
+    for _, url, _, _, team in fetched:
+        signed = f", signed by Developer ID team `{team}`" if team != "-" else ""
+        out.append(f"| Binary | [`{os.path.basename(url)}`]({url}){signed} |")
+    flag = version_flag(p)
+    if flag:
+        out.append(f"| Version check | `{p.name} {flag}` |")
 
     # A direct link to the built archive, but only when the versions
     # came from a real release -- linking one built from the working
@@ -353,13 +396,33 @@ for p in packages:
         asset = f"unflab-{p.name}-{p.version}-arm64-apple-darwin.tar.gz"
         out += [f"| Download | [`{asset}`]({RELEASE_URL}/{asset}) |"]
 
-    out += [
-        "",
-        "Built from that exact tarball, with its SHA-256 pinned in the",
-        "recipe. The binary links against nothing outside `/usr/lib`",
-        "and `/System/`, checked in CI before release.",
-        "",
-    ]
+    if fetched:
+        out += [
+            "",
+            "Not built by unflab: the installer downloads that binary from",
+            "its publisher, and installs it only if its SHA-256 matches the",
+            "one pinned in the recipe"
+            + (" and its Developer ID signature is valid." if any(
+                r[4] != "-" for r in fetched) else "."),
+            "CI makes the same checks, and confirms it links against",
+            "nothing outside `/usr/lib` and `/System/`.",
+            "",
+        ]
+    elif p.source == "local":
+        out += [
+            "",
+            "Its source is in this repository, so there is no upstream",
+            "tarball to pin.",
+            "",
+        ]
+    else:
+        out += [
+            "",
+            "Built from that exact tarball, with its SHA-256 pinned in the",
+            "recipe. The binary links against nothing outside `/usr/lib`",
+            "and `/System/`, checked in CI before release.",
+            "",
+        ]
 
     # Fold in the package README's body, minus its title. A recipe
     # emitting several packages gives each its own README-<pkg>.md;
@@ -440,9 +503,12 @@ for p in packages:
 # site-extra
 # ----------
 
-for template, out_name in (("get.sh", "get"), ("unflab.sh", "unflab")):
-    src = open(os.path.join(SCRIPT_DIR, "templates", template),
-               encoding="utf-8").read()
+# The helper is also a package (utils/unflab), and is still served here
+# for anyone who fetches it directly.
+for template, out_name in (
+        (os.path.join(SCRIPT_DIR, "templates", "get.sh"), "get"),
+        (os.path.join(ROOT_DIR, "utils", "unflab", "unflab.sh"), "unflab")):
+    src = open(template, encoding="utf-8").read()
     src = src.replace("{{BASE_URL}}", BASE_URL)
     src = src.replace("{{RELEASE_URL}}", RELEASE_URL)
     path = os.path.join(EXTRA_DIR, out_name)
