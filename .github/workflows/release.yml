@@ -112,7 +112,10 @@ jobs:
             exit 1
           fi
 
-          ver() { git show "$1:utils/$2/recipe.sh" 2>/dev/null |
+          # A recipe new since $prev has no recipe.sh there. `|| true`
+          # makes that an empty version rather than, under pipefail, an
+          # exit 128 that set -e turns into a silent failure.
+          ver() { { git show "$1:utils/$2/recipe.sh" 2>/dev/null || true; } |
                     sed -n 's/^UNFLAB_VERSION=//p' | head -1; }
           body=""
           names=""
