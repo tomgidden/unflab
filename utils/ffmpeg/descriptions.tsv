@@ -1,0 +1,3 @@
+ffmpeg	convert, record and stream audio and video
+ffprobe	inspect media files and streams
+ffplay	a simple media player built on the FFmpeg libraries

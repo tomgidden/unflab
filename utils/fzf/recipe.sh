@@ -24,6 +24,7 @@
 
 UNFLAB_NAME=fzf
 UNFLAB_VERSION=0.74.4
+UNFLAB_VERSION_FLAG="--version fzf-preview.sh=-"
 UNFLAB_HOMEPAGE=https://junegunn.github.io/fzf/
 UNFLAB_LICENSE=MIT
 UNFLAB_SOURCE=https://github.com/junegunn/fzf/archive/refs/tags/v0.74.4.tar.gz

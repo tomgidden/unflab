@@ -42,12 +42,20 @@ for pkg in "${packages[@]}"; do
   manifest="$stage/.unflab/manifest.tsv"
   [[ -f "$manifest" ]] || { echo "package.sh: $pkg missing .unflab/manifest.tsv" >&2; exit 1; }
 
+  # Files the installer downloads rather than finds in the package. An
+  # absent file means none, as with the post-install notes below.
+  fetch="$stage/.unflab/fetch.tsv"
+  [[ -f "$fetch" ]] || fetch=/dev/null
+
   # Every source named by the manifest must actually be present, or the
   # package would fail at install time on the user's machine instead of
-  # here, where it's cheap to catch.
+  # here, where it's cheap to catch. A fetched source is the exception:
+  # build.sh has already downloaded, checked and gated it.
   while IFS=$'\t' read -r kind mode src dest plain; do
     [[ -z "$kind" || "$kind" == \#* ]] && continue
-    [[ -f "$stage/$src" ]] || { echo "package.sh: $pkg manifest names missing file: $src" >&2; exit 1; }
+    [[ -f "$stage/$src" ]] && continue
+    cut -f1 "$fetch" | grep -qxF "$src" && continue
+    echo "package.sh: $pkg manifest names missing file: $src" >&2; exit 1
   done < "$manifest"
 
   # Optional post-install notes. Most packages need none, so an absent
@@ -71,6 +79,8 @@ for pkg in "${packages[@]}"; do
       -e "/{{MANIFEST}}/d" \
       -e "/{{POST_INSTALL}}/r $post_install" \
       -e "/{{POST_INSTALL}}/d" \
+      -e "/{{FETCH}}/r $fetch" \
+      -e "/{{FETCH}}/d" \
       -e "s|{{UTIL}}|$pkg|g" \
       -e "s|{{VERSION}}|$version|g" \
       "$TEMPLATE" > "$install_sh"

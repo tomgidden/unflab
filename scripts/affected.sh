@@ -79,18 +79,20 @@ for f in "$@"; do
       # by the default below.
       everything=1 ;;
 
+    # The repo's own licence ships in the unflab helper's package.
+    LICENSE)
+      selected="$selected unflab" ;;
+
     # Cannot reach an artefact or a test.
     #
-    # templates/get.sh and unflab.sh are the site's bootstrap and
-    # helper: served from the site, never staged into a package. The
-    # docs generator, prereqs, bump and check-updates likewise touch
-    # no artefact -- verified with build-key.sh, which does not hash
-    # any of them.
+    # templates/get.sh is the site's bootstrap: served from the site,
+    # never staged into a package. The docs generator, prereqs, bump and
+    # check-updates likewise touch no artefact -- verified with
+    # build-key.sh, which does not hash any of them.
     docs/*|\
     site-extra/*|\
     scripts/generate-docs.py|\
     scripts/templates/get.sh|\
-    scripts/templates/unflab.sh|\
     scripts/prereqs.sh|\
     scripts/bump.sh|\
     scripts/check-updates.sh|\
@@ -99,7 +101,6 @@ for f in "$@"; do
     docmd.config.json|\
     README.md|\
     AGENTS.md|\
-    LICENSE|\
     .gitignore|\
     .github/workflows/pages.yml|\
     .github/workflows/bump.yml|\

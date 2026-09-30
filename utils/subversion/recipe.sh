@@ -15,6 +15,7 @@
 
 UNFLAB_NAME=subversion
 UNFLAB_VERSION=1.14.5
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://subversion.apache.org/
 UNFLAB_LICENSE=Apache-2.0
 UNFLAB_SOURCE=https://archive.apache.org/dist/subversion/subversion-1.14.5.tar.bz2

@@ -28,6 +28,7 @@
 
 UNFLAB_NAME=astyle
 UNFLAB_VERSION=3.6.18
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://astyle.sourceforge.net/
 UNFLAB_LICENSE=MIT
 UNFLAB_SOURCE="https://downloads.sourceforge.net/project/astyle/astyle/astyle%203.6/astyle-3.6.18.tar.bz2"

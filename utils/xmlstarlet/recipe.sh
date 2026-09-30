@@ -8,6 +8,7 @@
 
 UNFLAB_NAME=xmlstarlet
 UNFLAB_VERSION=1.6.1
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://xmlstar.sourceforge.net/
 UNFLAB_LICENSE=MIT
 UNFLAB_SOURCE=https://downloads.sourceforge.net/project/xmlstar/xmlstarlet/1.6.1/xmlstarlet-1.6.1.tar.gz

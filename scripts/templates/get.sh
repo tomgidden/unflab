@@ -284,17 +284,7 @@ if [ "$need_usage" != '' ]; then
 fi
 
 # If no utilities were specified, show the help.
-# `unflab unflab` reinstalls (or with --uninstall, removes) the helper.
-self=
-if [ -z "$info" ]; then
-  rest=""
-  for u in $utils; do
-    if [ "$u" = unflab ]; then self=1; else rest="$rest $u"; fi
-  done
-  utils="$rest"
-fi
-
-if [ -z "$utils$list$self" ]; then
+if [ -z "$utils$list" ]; then
   usage >&2
   throw "no utility named."
 fi
@@ -533,6 +523,60 @@ from_webi() {
   run_offered "$1" "curl -fsS https://webi.sh/$1 | sh"
 }
 
+# Download, check, unpack and install one package, by package name.
+# Returns non-zero, having said why, if it didn't install.
+install_package() {
+  archive="unflab-$1-${version}-${ARCH}.tar.gz"
+
+  if ! $CURL -o "$TMP/$archive" "$RELEASE_URL/$archive"; then
+    warn_np "    download failed"
+    return 1
+  fi
+
+  # Verify against the published checksum list rather than trusting the
+  # transport alone -- this whole script is running piped into a shell.
+  sums="$TMP/SHA256SUMS-${ARCH}.txt"
+
+  if [ -z "$no_checksum" ]; then
+    if [ ! -f "$sums" ]; then
+      $CURL -o "$sums" "$RELEASE_URL/SHA256SUMS-${ARCH}.txt" || true
+    fi
+
+    if [ ! -s "$sums" ]; then
+      warn_np "    couldn't fetch checksums; use --no-checksum to install anyway"
+      return 1
+    fi
+
+    want="$(awk -v f="$archive" '$2 == f || $2 == "*"f {print $1}' "$sums" | head -1)"
+    got="$(shasum -a 256 "$TMP/$archive" | awk '{print $1}')"
+
+    if [ -z "$want" ]; then
+      warn_np "    no checksum published for $archive; use --no-checksum to install anyway"
+      return 1
+    fi
+
+    if [ "$want" != "$got" ]; then
+      warn_np "    CHECKSUM MISMATCH; use --no-checksum to install anyway"
+      warn_np "      expected $want"
+      warn_np "      actual   $got"
+      return 1
+    fi
+  fi
+
+  dir="$TMP/$1"
+  mkdir -p "$dir"
+  if ! tar xzf "$TMP/$archive" -C "$dir"; then
+    warn_np "    couldn't unpack"
+    return 1
+  fi
+
+  # Hand off to the package's own installer: same script, same code path
+  # as a manual download. Run as a file, not piped, so it can find the
+  # payload sitting beside it.
+  # shellcheck disable=SC2086
+  sh "$dir/install.sh" $install_flags
+}
+
 # For each util specified...
 for u in $utils; do
   case " $webi " in *" $u "*) from_webi "$u"; echo ""; continue ;; esac
@@ -542,165 +586,39 @@ for u in $utils; do
     delegate) delegate "$u" "$package"; echo ""; continue ;;
   esac
 
-  # Construct the archive name
-  archive="unflab-${package}-${version}-${ARCH}.tar.gz"
   if [ "$package" = "$u" ]; then
     echo "==> $u $version"
   else
     echo "==> $u: in the $package package, $version"
   fi
-  u="$package"
 
-  # Download the archive
-  if ! $CURL -o "$TMP/$archive" "$RELEASE_URL/$archive"; then
-    warn_np "    download failed"
-    failed="$failed $u"
-    continue
-  fi
-
-  # Verify against the published checksum list rather than trusting the
-  # transport alone -- this whole script is running piped into a shell.
-  sums="$TMP/SHA256SUMS-${ARCH}.txt"
-
-  # Assuming we're checksumming...
-  if [ -z "$no_checksum" ]; then
-
-    # If the checksums file doesn't exist, fetch it.
-    if [ ! -f "$sums" ]; then
-      $CURL -o "$sums" "$RELEASE_URL/SHA256SUMS-${ARCH}.txt" || true
-    fi
-
-    # No checksums file, or an empty one, means we can't verify anything.
-    if [ ! -s "$sums" ]; then
-      warn_np "    couldn't fetch checksums; use --no-checksum to install anyway"
-      failed="$failed $u"
-      continue
-    fi
-
-    # Get the expected checksum for the archive
-    want="$(awk -v f="$archive" '$2 == f || $2 == "*"f {print $1}' "$sums" | head -1)"
-
-    # Get the actual checksum for the archive
-    got="$(shasum -a 256 "$TMP/$archive" | awk '{print $1}')"
-
-    # If the expected checksum is empty, there's no published checksum for
-    # this archive, so we can't check it.
-    if [ -z "$want" ]; then
-      warn_np "    no checksum published for $archive; use --no-checksum to install anyway"
-      failed="$failed $u"
-      continue
-    fi
-
-    if [ "$want" != "$got" ]; then
-      warn_np "    CHECKSUM MISMATCH; use --no-checksum to install anyway"
-      warn_np "      expected $want"
-      warn_np "      actual   $got"
-      failed="$failed $u"
-      continue
-    fi
-  fi
-
-  # Unpack the archive into its own directory. This happens whether or
-  # not we checksummed -- it used to sit inside the block above, which
-  # meant --no-checksum quietly installed nothing at all.
-  dir="$TMP/$u"
-  mkdir -p "$dir"
-  if ! tar xzf "$TMP/$archive" -C "$dir"; then
-    warn_np "    couldn't unpack"
-    failed="$failed $u"
-    continue
-  fi
-
-  # Hand off to the package's own installer: same script, same code path
-  # as a manual download. Run as a file, not piped, so it can find the
-  # payload sitting beside it.
-  # shellcheck disable=SC2086
-  if sh "$dir/install.sh" $install_flags; then
-    ok="$ok $u"
+  if install_package "$package"; then
+    ok="$ok $package"
   else
-    failed="$failed $u"
+    failed="$failed $package"
   fi
 
   echo ""
 done
 
-# Drop in a small `unflab` command so installing or removing something
-# else doesn't mean finding this URL again. It is a wrapper around this
-# very script -- no state, no database -- and the note below says so, and
-# says it's safe to delete.
-install_helper() {
-  if [ -n "$self" ] && [ -n "$uninstall" ]; then
-    echo "==> unflab"
-    if [ -f "$prefix/unflab" ]; then
-      rm -f "$prefix/unflab" && echo "Removed $prefix/unflab" && ok="$ok unflab"
-    else
-      echo "Nothing to remove: no $prefix/unflab"
-    fi
-    return 0
-  fi
-
-  # If --no-helper was specified (or --uninstall, --purge), don't install
-  # the helper script.
-  [ -n "$no_helper" ] && return 0
-  [ -n "$ok$self" ] || return 0
-
-  # Download the helper script, and make sure it's valid
-  helper="$TMP/unflab"
-  if ! $CURL -o "$helper" "$BASE_URL/unflab" 2>/dev/null ||
-     ! head -1 "$helper" | grep -q '^#!'; then
-    [ -n "$self" ] && failed="$failed unflab"
-    return 0
-  fi
-
-  # Already got one? Say whether it matches, and leave it alone either
-  # way -- it might be one you've edited, and this script has no business
-  # deciding that for you.
-  # Asked for by name, it is replaced. Renamed into place rather than
-  # overwritten: the running `unflab` may be this very file.
-  if [ -n "$self" ]; then
-    echo "==> unflab"
-    mkdir -p "$prefix" 2>/dev/null &&
-      cp "$helper" "$prefix/.unflab.new" &&
-      chmod +x "$prefix/.unflab.new" &&
-      mv -f "$prefix/.unflab.new" "$prefix/unflab" || {
-        rm -f "$prefix/.unflab.new"; failed="$failed unflab"; return 0; }
-    echo "Installed $prefix/unflab"
-    ok="$ok unflab"
-    return 0
-  fi
-
-  if [ -f "$prefix/unflab" ]; then
-    have="$(shasum -a 256 "$prefix/unflab" 2>/dev/null | awk '{print $1}')"
-    want="$(shasum -a 256 "$helper" 2>/dev/null | awk '{print $1}')"
-    [ -n "$have" ] && [ "$have" != "$want" ] && helper_stale=1
-    return 0
-  fi
-
-  # Install it to the prefix
-  mkdir -p "$prefix" 2>/dev/null || return 0
-  cp "$helper" "$prefix/unflab" 2>/dev/null || return 0
-  chmod +x "$prefix/unflab" 2>/dev/null || return 0
-  helper_installed=1
-}
-
+# Drop in the `unflab` command, the first time something else is
+# installed, so the next install doesn't mean finding this URL again.
+# It is an ordinary package: `unflab --uninstall unflab` removes it.
 helper_installed=
-helper_stale=
-install_helper
+if [ -z "$no_helper" ] && [ -n "$ok" ] && [ ! -e "$prefix/unflab" ] &&
+   lookup unflab && [ "$kind" = build ]; then
+  case " $ok " in
+    *" unflab "*) ;;
+    *)
+      flags="$install_flags"
+      install_flags="$install_flags --no-path"
+      install_package unflab >/dev/null && helper_installed=1
+      install_flags="$flags"
+      ;;
+  esac
+fi
 
 helper_note() {
-  if [ -n "$helper_stale" ]; then
-    echo ""
-    echo "Your $prefix/unflab is out of date. No big deal -- it still"
-    echo "works. To update it, run ${COMMAND}unflab unflab${RESET}, or:"
-    echo ""
-    # chmod matters: curl -o writes a plain file, so without it the
-    # updated copy isn't executable and "unflab: permission denied" is a
-    # confusing way to find that out.
-    echo "    curl -fsSL -o $prefix/unflab $BASE_URL/unflab && chmod +x $prefix/unflab"
-    echo ""
-    return 0
-  fi
-
   [ -n "$helper_installed" ] || return 0
   echo ""
   echo "Also installed: $prefix/unflab -- so you don't have to find that"
@@ -711,8 +629,8 @@ helper_note() {
   echo "    unflab --list                 see what there is"
   echo ""
   echo "It's a wrapper around the same one-liner, not a package manager:"
-  echo "no database, no state, nothing running in the background. Delete"
-  echo "it if you'd rather not have it."
+  echo "no database, no state, nothing running in the background. If you'd"
+  echo "rather not have it: unflab --uninstall unflab"
   echo ""
 }
 

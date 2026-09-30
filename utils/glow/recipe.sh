@@ -7,6 +7,7 @@
 
 UNFLAB_NAME=glow
 UNFLAB_VERSION=3.0.0
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://github.com/charmbracelet/glow
 UNFLAB_LICENSE=MIT
 UNFLAB_SOURCE=https://github.com/charmbracelet/glow/releases/download/v3.0.0/glow-3.0.0.tar.gz

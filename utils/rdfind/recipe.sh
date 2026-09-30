@@ -8,6 +8,7 @@
 
 UNFLAB_NAME=rdfind
 UNFLAB_VERSION=1.8.0
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://rdfind.pauldreik.se/
 UNFLAB_LICENSE=GPL-2.0-or-later
 UNFLAB_SOURCE=https://rdfind.pauldreik.se/rdfind-1.8.0.tar.gz

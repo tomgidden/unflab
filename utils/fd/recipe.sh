@@ -23,6 +23,7 @@
 
 UNFLAB_NAME=fd
 UNFLAB_VERSION=10.5.0
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://github.com/sharkdp/fd
 UNFLAB_LICENSE="MIT OR Apache-2.0"
 UNFLAB_SOURCE=https://github.com/sharkdp/fd/archive/refs/tags/v10.5.0.tar.gz

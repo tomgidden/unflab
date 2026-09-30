@@ -7,6 +7,7 @@
 
 UNFLAB_NAME=htop
 UNFLAB_VERSION=3.5.3
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://htop.dev/
 UNFLAB_LICENSE=GPL-2.0-or-later
 UNFLAB_SOURCE=https://github.com/htop-dev/htop/releases/download/3.5.3/htop-3.5.3.tar.xz

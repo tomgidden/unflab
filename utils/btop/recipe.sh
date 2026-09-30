@@ -19,6 +19,7 @@
 
 UNFLAB_NAME=btop
 UNFLAB_VERSION=1.4.7
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://github.com/aristocratos/btop
 UNFLAB_LICENSE=Apache-2.0
 UNFLAB_SOURCE=https://github.com/aristocratos/btop/archive/refs/tags/v1.4.7.tar.gz

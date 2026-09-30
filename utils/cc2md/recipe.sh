@@ -7,6 +7,7 @@
 
 UNFLAB_NAME=cc2md
 UNFLAB_VERSION=0.1.0
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://github.com/magarcia/cc2md
 UNFLAB_LICENSE=MIT
 UNFLAB_SOURCE=https://github.com/magarcia/cc2md/archive/refs/tags/v0.1.0.tar.gz

@@ -32,6 +32,7 @@
 
 UNFLAB_NAME=nano
 UNFLAB_VERSION=9.2
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://www.nano-editor.org/
 UNFLAB_LICENSE=GPL-3.0-or-later
 UNFLAB_SOURCE=https://www.nano-editor.org/dist/v9/nano-9.2.tar.xz
