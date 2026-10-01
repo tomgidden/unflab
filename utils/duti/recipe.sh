@@ -32,6 +32,7 @@
 
 UNFLAB_NAME=duti
 UNFLAB_VERSION=1.5.4
+UNFLAB_VERSION_FLAG="--version duti=-V"
 UNFLAB_HOMEPAGE=https://github.com/moretension/duti/
 UNFLAB_LICENSE="public-domain AND MIT"
 UNFLAB_SOURCE=https://github.com/moretension/duti/archive/refs/tags/duti-1.5.4.tar.gz

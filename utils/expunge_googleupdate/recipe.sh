@@ -5,6 +5,7 @@
 
 UNFLAB_NAME=expunge_googleupdate
 UNFLAB_VERSION=1
+UNFLAB_VERSION_FLAG=-
 UNFLAB_HOMEPAGE=https://gist.github.com/tomgidden/6cfc0e2a3faa0300edd86e36c35a18f7
 UNFLAB_LICENSE=MIT
 UNFLAB_SOURCE=https://gist.github.com/tomgidden/6cfc0e2a3faa0300edd86e36c35a18f7/archive/main.tar.gz

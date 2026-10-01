@@ -9,6 +9,7 @@
 
 UNFLAB_NAME=socat
 UNFLAB_VERSION=1.8.1.3
+UNFLAB_VERSION_FLAG="-V filan=-"
 UNFLAB_HOMEPAGE=http://www.dest-unreach.org/socat/
 UNFLAB_LICENSE=GPL-2.0-only
 UNFLAB_SOURCE=http://www.dest-unreach.org/socat/download/socat-1.8.1.3.tar.gz

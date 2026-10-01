@@ -9,6 +9,7 @@
 
 UNFLAB_NAME=wget
 UNFLAB_VERSION=1.25.0
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://www.gnu.org/software/wget/
 UNFLAB_LICENSE=GPL-3.0-or-later
 UNFLAB_SOURCE=https://ftp.gnu.org/gnu/wget/wget-1.25.0.tar.gz

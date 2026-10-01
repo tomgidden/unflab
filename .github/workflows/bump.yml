@@ -115,7 +115,7 @@ jobs:
               evidence="This upstream publishes nothing to verify against; see UNFLAB_ATTEST in the recipe. The pin below is what was downloaded, nothing more."
             fi
 
-            git add "utils/$recipe/recipe.sh"
+            git add "utils/$recipe"
             msg="$(printf '%s\n\n%s\n\n%s\n' \
               "$recipe: $version" \
               "Automated version bump. The recipe's declarations are rewritten; comments mentioning the old version are deliberately left alone for a human to update." \

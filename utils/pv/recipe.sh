@@ -7,6 +7,7 @@
 
 UNFLAB_NAME=pv
 UNFLAB_VERSION=1.12.0
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://www.ivarch.com/programs/pv.shtml
 UNFLAB_LICENSE=GPL-3.0-or-later
 UNFLAB_SOURCE=https://www.ivarch.com/programs/sources/pv-1.12.0.tar.gz

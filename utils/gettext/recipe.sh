@@ -30,6 +30,7 @@
 
 UNFLAB_NAME=gettext
 UNFLAB_VERSION=1.0
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://www.gnu.org/software/gettext/
 UNFLAB_LICENSE=GPL-3.0-or-later
 UNFLAB_SOURCE=https://ftp.gnu.org/gnu/gettext/gettext-1.0.tar.gz

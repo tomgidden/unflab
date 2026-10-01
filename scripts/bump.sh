@@ -74,9 +74,12 @@ attest_spec="$(sed -n "s/^UNFLAB_ATTEST=//p" "$RECIPE" | head -1 | tr -d "\"'")"
 if [ -n "$attest_spec" ]; then
   # shellcheck source=lib/attest.sh
   source "$SCRIPT_DIR/lib/attest.sh"
+  # `|| rc=$?`: under set -e a bare non-zero return would end the script
+  # here, before 2 could be treated as the warning it is.
+  rc=0
   unflab_attest "$tmp/$asset" "$new_sha" "$attest_spec" "$NEW_VERSION" \
-    "$new_source.sig"
-  case $? in
+    "$new_source.sig" || rc=$?
+  case $rc in
     0) ;;
     1) echo "bump.sh: upstream evidence contradicts this download -- refusing" >&2
        exit 1 ;;
@@ -105,3 +108,62 @@ PY
 bash -n "$RECIPE" || { echo "bump.sh: rewrote $RECIPE into invalid bash" >&2; exit 1; }
 
 echo "    recipe updated"
+
+# Prebuilt binaries pinned in fetch.tsv move with the version too. Each
+# URL has the old version substituted, as for UNFLAB_SOURCE -- except
+# where the recipe's check is html-re and the URL contains a match of
+# its pattern. Then the match is replaced by the one the same page shows
+# for the new version, because that part of the URL (ffmpeg's
+# /<timestamp>_<version>/) can't be derived from the version alone.
+#
+# Only the checksum is re-pinned here. The signature check needs macOS,
+# and build.sh makes it when the bump's pull request is built.
+FETCH_TSV="$(dirname "$RECIPE")/fetch.tsv"
+if [ -f "$FETCH_TSV" ]; then
+  check="$(sed -n 's/^UNFLAB_CHECK=//p' "$RECIPE" | head -1 | tr -d '"')"
+  page_re=""
+  : > "$tmp/page"
+  case "$check" in
+    html-re:*)
+      rest="${check#html-re:}"
+      page_re="${rest##*:}"
+      curl -fsSL --connect-timeout 15 --max-time 60 --retry 2 \
+        -o "$tmp/page" "${rest%:*}" || {
+          echo "bump.sh: could not fetch ${rest%:*}" >&2; exit 1; }
+      ;;
+  esac
+
+  python3 - "$FETCH_TSV" "$old_version" "$NEW_VERSION" "$page_re" "$tmp/page" "$tmp" <<'PY'
+import re, subprocess, sys, hashlib
+path, old, new, page_re, page_file, tmp = sys.argv[1:7]
+page = open(page_file, encoding="utf-8", errors="replace").read()
+
+def new_url(url):
+    if page_re:
+        m = re.search(page_re, url)
+        if m and m.group(1) == old:
+            for cand in re.finditer(page_re, page):
+                if cand.group(1) == new:
+                    return url.replace(m.group(0), cand.group(0))
+            sys.exit(f"bump.sh: {new} is not on the page UNFLAB_CHECK reads")
+    if old not in url:
+        sys.exit(f"bump.sh: {old} does not appear in fetch URL {url}")
+    return url.replace(old, new)
+
+out = []
+for line in open(path, encoding="utf-8").read().splitlines():
+    if not line.strip() or line.startswith("#"):
+        out.append(line); continue
+    f = line.split("\t")
+    url = new_url(f[2])
+    dest = f"{tmp}/fetch"
+    subprocess.run(["curl", "-fsSL", "--connect-timeout", "15", "--max-time", "600",
+                    "--retry", "2", "-o", dest, url], check=True)
+    f[2], f[3] = url, hashlib.sha256(open(dest, "rb").read()).hexdigest()
+    print(f"    {f[0]}: {url}\n    sha256 {f[3]}")
+    out.append("\t".join(f))
+open(path, "w", encoding="utf-8").write("\n".join(out) + "\n")
+PY
+
+  echo "    fetch.tsv updated"
+fi

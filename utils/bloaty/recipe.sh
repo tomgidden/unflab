@@ -10,6 +10,7 @@
 
 UNFLAB_NAME=bloaty
 UNFLAB_VERSION=1.1
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://github.com/google/bloaty
 UNFLAB_LICENSE=Apache-2.0
 UNFLAB_SOURCE=https://github.com/google/bloaty/releases/download/v1.1/bloaty-1.1.tar.bz2

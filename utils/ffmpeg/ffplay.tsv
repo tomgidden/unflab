@@ -1,0 +1,5 @@
+bin	755	bin/ffplay	ffplay	-
+man1	644	share/man/man1/ffplay.1	ffplay.1	-
+man1	644	share/man/man1/ffplay-all.1	ffplay-all.1	-
+doc	644	README.md	README.md	-
+doc	644	LICENSE	LICENSE	-
