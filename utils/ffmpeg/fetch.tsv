@@ -1,0 +1,4 @@
+# package	src	url	sha256	member	team
+ffmpeg	bin/ffmpeg	https://ffmpeg.martin-riedl.de/download/macos/arm64/1789931890_9.0.2/ffmpeg.zip	c8ed4c4e6978a03c485edbfe4e0a5dc2380f8a30bba5150531b31b094492d924	ffmpeg	KU3N25YGLU
+ffprobe	bin/ffprobe	https://ffmpeg.martin-riedl.de/download/macos/arm64/1789931890_9.0.2/ffprobe.zip	fcbe839537485eaee7a7a8bc5cbc0f90d53617e80943e8a5b2e31cb851197ea6	ffprobe	KU3N25YGLU
+ffplay	bin/ffplay	https://ffmpeg.martin-riedl.de/download/macos/arm64/1789931890_9.0.2/ffplay.zip	68e4bbec42ff060af82edb6406e04d9492920f98ff14cf0ef0a7ed70760acae8	ffplay	KU3N25YGLU

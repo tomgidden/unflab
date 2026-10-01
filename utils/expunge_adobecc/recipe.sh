@@ -5,6 +5,7 @@
 
 UNFLAB_NAME=expunge_adobecc
 UNFLAB_VERSION=2
+UNFLAB_VERSION_FLAG=-
 UNFLAB_HOMEPAGE=https://gist.github.com/tomgidden/6a9f083988f7d4505d4e38674d416c04
 UNFLAB_LICENSE=MIT
 UNFLAB_SOURCE=https://gist.github.com/tomgidden/6a9f083988f7d4505d4e38674d416c04/archive/main.tar.gz

@@ -50,7 +50,10 @@ you picked wrong.  _webi_ is _great_.
 
 The differences are real, though, and they're mostly about scope:
 
-- **webi downloads, _unflab_ compiles.**
+- **webi downloads, _unflab_ compiles.** With one exception: ffmpeg is
+  Martin Riedl's signed static build, which the installer downloads and
+  accepts only if it matches a pinned checksum and his Developer ID
+  signature, and which goes through the same gate in CI.
 
 - **webi is multi-platform, _unflab_ is macOS-only.**
 
@@ -178,4 +181,5 @@ is MIT (see `LICENSE`).
 Every utility it builds stays under its own upstream licence, shipped
 verbatim inside the package. `unflab` compiles and packages other
 people's software; it doesn't relicense it. Each recipe records the exact
-source URL, version and checksum it was built from.
+source URL, version and checksum it was built from — or, for a binary it
+installs rather than builds, the URL and checksum of that binary.

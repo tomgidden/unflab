@@ -18,6 +18,7 @@
 
 UNFLAB_NAME=ant
 UNFLAB_VERSION=1.35.0
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://github.com/anthropics/anthropic-cli
 UNFLAB_LICENSE=MIT
 UNFLAB_SOURCE=https://github.com/anthropics/anthropic-cli/archive/refs/tags/v1.35.0.tar.gz

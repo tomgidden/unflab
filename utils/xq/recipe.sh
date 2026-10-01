@@ -13,6 +13,7 @@
 
 UNFLAB_NAME=xq
 UNFLAB_VERSION=1.5.1
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://github.com/sibprogrammer/xq
 UNFLAB_LICENSE=MIT
 UNFLAB_SOURCE=https://github.com/sibprogrammer/xq/archive/refs/tags/v1.5.1.tar.gz

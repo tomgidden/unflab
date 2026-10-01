@@ -15,10 +15,13 @@
 #   gitlab-tags:<owner>/<repo>   newest tag
 #   gnu:<package>                ftp.gnu.org directory listing
 #   html:<url>:<prefix>          scrape <prefix>-<version>.tar.* from a page
+#   html-re:<url>:<ERE>          scrape a page with an ERE whose first
+#                                group is the version
 #
 # A recipe with no UNFLAB_CHECK is reported as unchecked rather than
 # skipped silently -- an upstream nobody is watching is worth knowing
-# about.
+# about. A recipe whose source is the repo itself (UNFLAB_SOURCE=local)
+# has no upstream, and is left out.
 
 set -euo pipefail
 
@@ -86,6 +89,17 @@ latest_version() {
         sed -E "s/^$prefix-//; s/(-[a-z]+)?\.tar\.(gz|xz|bz2)$//" |
         sort -V | tail -1
       ;;
+    html-re)
+      # html-re:<url>:<ERE> -- for a page that doesn't name tarballs,
+      # such as ffmpeg's /<timestamp>_<version>/ download directories.
+      # The ERE's first group is the version; it may not contain a
+      # colon or a '#'.
+      local url="${rest%:*}" re="${rest##*:}"
+      "${CURL[@]}" "$url" |
+        grep -oE "$re" |
+        sed -E "s#^$re\$#\\1#" |
+        sort -V | tail -1
+      ;;
     *)
       return 1
       ;;
@@ -141,6 +155,7 @@ report() {
 for r in "${recipes[@]}"; do
   recipe="$ROOT_DIR/utils/$r/recipe.sh"
   [ -f "$recipe" ] || continue
+  grep -q '^UNFLAB_SOURCE=local$' "$recipe" && continue
 
   report "$r" \
     "$(sed -n 's/^UNFLAB_VERSION=//p' "$recipe" | head -1 | tr -d '"')" \

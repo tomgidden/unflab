@@ -5,6 +5,7 @@
 
 UNFLAB_NAME=rename
 UNFLAB_VERSION=1.601
+UNFLAB_VERSION_FLAG=-
 UNFLAB_HOMEPAGE=http://plasmasturm.org/code/rename
 UNFLAB_LICENSE="Artistic-1.0-Perl OR GPL-1.0-or-later"
 UNFLAB_SOURCE=https://github.com/ap/rename/archive/refs/tags/v1.601.tar.gz

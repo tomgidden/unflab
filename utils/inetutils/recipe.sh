@@ -17,6 +17,7 @@
 
 UNFLAB_NAME=inetutils
 UNFLAB_VERSION=2.8
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://www.gnu.org/software/inetutils/
 UNFLAB_LICENSE=GPL-3.0-or-later
 UNFLAB_SOURCE=https://ftp.gnu.org/gnu/inetutils/inetutils-2.8.tar.gz

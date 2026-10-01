@@ -16,7 +16,9 @@
 #   ./install.sh --path / --no-path     # force PATH advice on/off (non-interactive)
 
 # POSIX sh, and only tools present on a stock macOS: install, ln, sed,
-# rm, readlink, command, xattr. Of `install` only -d and -m are used --
+# rm, readlink, command, xattr, and for a package whose binary is
+# fetched at install time, curl, shasum, tar and codesign. Of `install`
+# only -d and -m are used --
 # the flags common to both BSD (macOS) and GNU install -- so this works
 # regardless of which one is first on PATH.
 
@@ -78,6 +80,17 @@ MANIFEST=$(
   cat <<'UNFLAB_MANIFEST_EOF'
 {{MANIFEST}}
 UNFLAB_MANIFEST_EOF
+)
+
+# Files downloaded at install time rather than shipped in the package.
+# Field order: source <TAB> url <TAB> sha256 <TAB> member <TAB> team
+# `member` is the file's path inside the download (`-`: the download is
+# the file). `team` is the Apple Developer ID team it must be signed by
+# (`-`: no signature check).
+FETCH=$(
+  cat <<'UNFLAB_FETCH_EOF'
+{{FETCH}}
+UNFLAB_FETCH_EOF
 )
 
 # Post-install notes, printed after a successful install. Empty for most
@@ -388,6 +401,52 @@ UNFLAB_EOF
   exit 0
 fi
 
+# Fetch
+
+FETCH_DIR=
+
+fetch_fail() {
+  echo "$COMMAND$SELF$RESET: $ERROR$1$RESET" >&2
+  exit 1
+}
+
+if printf '%s\n' "$FETCH" | grep -q '^[^#]'; then
+  FETCH_DIR=$(mktemp -d "${TMPDIR:-/tmp}/unflab-fetch.XXXXXX")
+  trap 'rm -rf "$FETCH_DIR"' EXIT
+  trap 'exit 1' INT TERM
+
+  while IFS='	' read -r src url sha member team; do
+    case "$src" in '' | \#*) continue ;; esac
+
+    echo "Fetching $url"
+    download="$FETCH_DIR/download"
+    curl -fsSL --connect-timeout 15 --max-time 600 --retry 2 -o "$download" "$url" ||
+      fetch_fail "download failed: $url"
+
+    got=$(shasum -a 256 "$download" | awk '{print $1}')
+    [ "$got" = "$sha" ] ||
+      fetch_fail "checksum mismatch for $url: expected $sha, got $got"
+
+    out="$FETCH_DIR/$src"
+    mkdir -p "$(dirname "$out")"
+    if [ "$member" = "-" ]; then
+      mv "$download" "$out"
+    else
+      tar -xOf "$download" "$member" >"$out" 2>/dev/null ||
+        fetch_fail "$member not found in $url"
+      rm -f "$download"
+    fi
+
+    if [ "$team" != "-" ]; then
+      codesign --verify --strict -R="anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] and certificate leaf[field.1.2.840.113635.100.6.1.13] and certificate leaf[subject.OU] = \"$team\"" "$out" 2>/dev/null ||
+        fetch_fail "$member from $url is not signed by Developer ID team $team"
+      echo "Verified signature: Developer ID team $team"
+    fi
+  done <<UNFLAB_EOF
+$FETCH
+UNFLAB_EOF
+fi
+
 # Install
 
 # Read the manifest, one line at a time.
@@ -405,8 +464,11 @@ while IFS='	' read -r kind mode src dest plain; do
   # If the dest isn't set (or is -), skip it.
   [ "$dest" = "-" ] || [ -z "$dest" ] && continue
 
+  from="$SCRIPT_DIR/$src"
+  [ -n "$FETCH_DIR" ] && [ -f "$FETCH_DIR/$src" ] && from="$FETCH_DIR/$src"
+
   # If the src isn't there, fail
-  if [ ! -f "$SCRIPT_DIR/$src" ]; then
+  if [ ! -f "$from" ]; then
     echo "install.sh: missing from package: $src" >&2
     exit 1
   fi
@@ -422,7 +484,7 @@ while IFS='	' read -r kind mode src dest plain; do
   # rather than just $dir -- dirname gives back "." for a plain name,
   # which makes this the same operation in the common case.
   install -d -m 755 "$dir/$(dirname "$dest")"
-  install -m "$mode" "$SCRIPT_DIR/$src" "$dir/$dest"
+  install -m "$mode" "$from" "$dir/$dest"
   echo "Installed $dir/$dest"
   installed_count=$((installed_count + 1))
 
@@ -510,7 +572,7 @@ UNFLAB_EOF
 
 # Quarantine
 
-# Binaries here aren't signed with an Apple Developer ID or notarized, so
+# Most binaries here aren't signed with an Apple Developer ID or notarized, so
 # if this package arrived via a browser (or anything else LaunchServices
 # knows about) macOS will refuse to run it.
 #

@@ -34,6 +34,7 @@
 
 UNFLAB_NAME=typst
 UNFLAB_VERSION=0.15.1
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://typst.app/
 UNFLAB_LICENSE=Apache-2.0
 UNFLAB_SOURCE=https://github.com/typst/typst/archive/refs/tags/v0.15.1.tar.gz

@@ -12,6 +12,7 @@
 
 UNFLAB_NAME=yq
 UNFLAB_VERSION=4.54.1
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://mikefarah.gitbook.io/yq/
 UNFLAB_LICENSE=MIT
 UNFLAB_SOURCE=https://github.com/mikefarah/yq/archive/refs/tags/v4.54.1.tar.gz

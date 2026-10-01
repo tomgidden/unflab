@@ -27,6 +27,7 @@
 
 UNFLAB_NAME=mutool
 UNFLAB_VERSION=1.28.5
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://mupdf.com/
 UNFLAB_LICENSE=AGPL-3.0-or-later
 UNFLAB_SOURCE=https://mupdf.com/downloads/archive/mupdf-1.28.5-source.tar.gz

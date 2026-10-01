@@ -22,6 +22,7 @@
 
 UNFLAB_NAME=ripgrep
 UNFLAB_VERSION=15.2.0
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://github.com/BurntSushi/ripgrep
 UNFLAB_LICENSE="MIT OR UNLICENSE"
 UNFLAB_SOURCE=https://github.com/BurntSushi/ripgrep/archive/refs/tags/15.2.0.tar.gz

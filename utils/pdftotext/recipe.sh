@@ -16,6 +16,7 @@
 
 UNFLAB_NAME=pdftotext
 UNFLAB_VERSION=26.09.0
+UNFLAB_VERSION_FLAG="-v pdfdetach=--version pdfseparate=--version pdfunite=--version"
 UNFLAB_HOMEPAGE=https://poppler.freedesktop.org/
 UNFLAB_LICENSE=GPL-2.0-or-later
 UNFLAB_SOURCE=https://poppler.freedesktop.org/poppler-26.09.0.tar.xz

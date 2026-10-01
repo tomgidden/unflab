@@ -16,6 +16,8 @@ the gate is what proves none of it survived into the artefact.
     utils/<recipe>/manifest.tsv what to install where (or generated)
     utils/<recipe>/README.md    ships inside the package
     utils/<recipe>/message.txt  a stub's text, printed by `get`
+    utils/<recipe>/fetch.tsv    prebuilt binaries installed, not built
+    utils/unflab/               the `unflab` helper, as a package
     scripts/build.sh            fetch, verify, extract, build, stage
     scripts/verify.sh           the gate
     scripts/package.sh          staged tree -> dist/*.tar.gz
@@ -68,8 +70,14 @@ Required metadata:
 - `UNFLAB_HOMEPAGE`, `UNFLAB_CLASS`, `UNFLAB_PACKAGES`
 - `UNFLAB_CHECK` — how `check-updates.sh` finds the latest version
   (`github:owner/repo`, `github-tags:`, `gitlab-tags:`, `gnu:pkg`,
-  `html:url:prefix`). A recipe without one is reported as unchecked,
+  `html:url:prefix`, or `html-re:url:ERE` where the ERE's first group
+  is the version). A recipe without one is reported as unchecked,
   which is deliberate: an unwatched upstream is worth knowing about.
+- `UNFLAB_VERSION_FLAG` — what makes the binary print its version,
+  shown on its page. A bare flag applies to every binary the recipe
+  ships; `name=flag` overrides it for one; `-` means there is none.
+  `utils/pdftotext` (`-v`, with three `--version` exceptions) and
+  `utils/socat` (`-V filan=-`) show the mixed case.
 - `UNFLAB_ATTEST` — what upstream publishes to prove the tarball was
   ever the right one. `none:<reason>` is an acceptable answer and most
   recipes use it; the reason is the point.
@@ -78,6 +86,13 @@ Required metadata:
   `scripts/prereqs.sh` and the CI toolchain steps.
 - `UNFLAB_SRC_DIR` — only when the tarball doesn't unpack to
   `<name>-<version>`. Use `$BUILD_ROOT`, not `$BUILD_DIR` (see below).
+
+`UNFLAB_SOURCE=local` is for a recipe whose source lives in this repo —
+so far only `utils/unflab`. Nothing is downloaded, so there is no
+checksum; the recipe directory is copied in as the source, and
+`build-key.sh` already hashes every file in it. Bump its
+`UNFLAB_VERSION` by hand when it changes, since no upstream will.
+`check-updates.sh` leaves it out.
 
 Line 1 must be `# <name> -- <description>`. The docs generator scrapes
 it for the site.
@@ -190,6 +205,39 @@ literal backslash followed by the value.
 Hardcoding `~/.local/share/...` is the mistake to avoid: it is right
 for the default install and quietly wrong for every other one, in
 exactly the lines a user copies into an rc file.
+
+### Prebuilt binaries: fetch.tsv
+
+A recipe can install a binary it doesn't build. `utils/ffmpeg` is the
+case: a forty-library static build that its publisher already signs
+and ships for Apple Silicon. Reach for this only when that is true — a
+publisher with a signed, static, arm64 binary at a stable per-release
+URL — and say why in the header comment.
+
+`fetch.tsv` lists one file per row, tab-separated:
+
+    <package> <src> <url> <sha256> <member> <team>
+
+`src` is the path the manifest names (`bin/ffmpeg`); `member` is the
+file's path inside the download (`-` if the download is the file);
+`team` is the Apple Developer ID team it must be signed by (`-` for no
+signature check). The archive is unpacked with `tar`, which reads zip
+too.
+
+The package ships only the row. Its `install.sh` downloads the file on
+the user's machine and installs it only if the SHA-256 matches and, when
+a team is given, `codesign` accepts it against Apple's Developer ID
+requirement for that team — so an ad-hoc signature, another team's, or
+a modified binary is refused, and nothing is installed. `build.sh`
+fetches the same files, makes the same checks, and passes the binaries
+to `verify.sh`, so the gate covers what users actually download.
+
+`bump.sh` re-pins the rows. Each URL gets the old version replaced —
+unless the recipe's check is `html-re` and the URL contains a match
+of its pattern, when the match is replaced by the page's match for the
+new version. That is how ffmpeg's `/<timestamp>_<version>/` directory
+is found. `bump.sh` runs on Linux, so the signature is first checked
+when the bump's pull request builds.
 
 ### Alternative names
 
@@ -381,7 +429,9 @@ workflow, or
     gh workflow run release.yml -f bump=Z            # or Y
     gh workflow run release.yml -f dry_run=true      # just show it
 
-It refuses unless `main`'s Build run **at HEAD** is green, and unless
+It refuses unless `main`'s Build run **at HEAD** is green — if that run
+is still queued or running, it waits for it, so dispatching straight
+after a merge is fine — and unless
 some recipe's build-key inputs (`scripts/build-key.sh --inputs`) have
 changed since the last tag. It then works out the next version from the
 latest tag, writes an annotated tag listing each affected recipe's

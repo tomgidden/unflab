@@ -56,13 +56,16 @@ inputs() {
 
   # Only the helpers this recipe sources. Hashing all of scripts/lib
   # would make an OpenSSL bump rebuild every package in the repo,
-  # which is the opposite of the point.
+  # which is the opposite of the point. Any other repo file the recipe
+  # names as $ROOT_DIR/<path> -- the unflab helper ships the repo's
+  # LICENSE -- is part of its artefact in the same way.
   #
   # The `|| true` is load-bearing: most recipes source no helper at all,
   # and a grep that matches nothing exits 1, which under pipefail fails
   # the whole key.
-  { grep -ho 'scripts/lib/[A-Za-z0-9_-]*\.sh' \
-      "$ROOT_DIR/utils/$RECIPE/recipe.sh" 2>/dev/null || true; } | sort -u |
+  { grep -hoE 'scripts/lib/[A-Za-z0-9_-]*\.sh|\$ROOT_DIR/[A-Za-z0-9_./-]+' \
+      "$ROOT_DIR/utils/$RECIPE/recipe.sh" 2>/dev/null || true; } |
+  sed 's|^\$ROOT_DIR/||' | sort -u |
   while read -r rel; do
     [[ -f "$ROOT_DIR/$rel" ]] && printf '%s\n' "$rel"
   done

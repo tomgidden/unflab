@@ -21,6 +21,7 @@
 
 UNFLAB_NAME=micro
 UNFLAB_VERSION=2.0.15
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://micro-editor.github.io/
 UNFLAB_LICENSE=MIT
 UNFLAB_SOURCE=https://github.com/zyedidia/micro/archive/refs/tags/v2.0.15.tar.gz

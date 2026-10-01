@@ -15,6 +15,7 @@
 
 UNFLAB_NAME=shfmt
 UNFLAB_VERSION=3.14.1
+UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://github.com/mvdan/sh
 UNFLAB_LICENSE=BSD-3-Clause
 UNFLAB_SOURCE=https://github.com/mvdan/sh/archive/refs/tags/v3.14.1.tar.gz
