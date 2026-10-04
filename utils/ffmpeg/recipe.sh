@@ -7,7 +7,7 @@
 # binaries with all of that linked in and nothing outside the base
 # system.
 #
-# The one recipe in the collection (so far) that does not compile its
+# The first recipe in the collection that does not compile its
 # binaries. FFmpeg with this many codecs is a forty-library build, and
 # Martin Riedl already publishes one for Apple Silicon -- static,
 # signed with his Developer ID, from an open build script

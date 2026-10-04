@@ -336,7 +336,7 @@ available_utilities() {
       if (line != "") { print line; line="" }
 
       if (d != "") {
-        print "\n'$UNDERLINE'Installed by upstream'"'"'s own installer:'$RESET'"
+        print "\n'$UNDERLINE'Installed using their own installers:'$RESET'"
         print d
       }
       print " "

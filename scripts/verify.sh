@@ -78,8 +78,19 @@ check_one() {
   # the build machine but can break, or silently pick up a different
   # library, elsewhere. Flag those too.
   local rpaths
+  #
+  # A relative rpath (@loader_path, @executable_path) is different: it
+  # points nowhere outside the install, and only matters if something is
+  # loaded through @rpath. SwiftPM adds @loader_path to every executable
+  # by default, and a signed upstream binary can't have it stripped, so
+  # it passes as long as no load command uses @rpath.
+  local uses_rpath=0
+  otool -L "$f" | tail -n +2 | grep -q -E '^\s+@rpath/' && uses_rpath=1
   rpaths="$(otool -l "$f" | awk '/LC_RPATH/{p=1} p&&/path /{print $2; p=0}' \
     | grep -v -E '^(/usr/lib|/System)' || true)"
+  if [[ -n "$rpaths" && "$uses_rpath" -eq 0 ]]; then
+    rpaths="$(grep -v -E '^@(loader|executable)_path(/|$)' <<<"$rpaths" || true)"
+  fi
   if [[ -n "$rpaths" ]]; then
     echo "FAIL  $f has non-system LC_RPATH entries:" >&2
     echo "$rpaths" >&2

@@ -570,7 +570,7 @@ def stub_table(rows):
 
 delegates = [p for p in packages if p.kind == "delegate"]
 if delegates:
-    index += ["", "### Installed by upstream's own installer", "",
+    index += ["", "### Installed using their own installers", "",
               "Not built here. `get` shows the command and asks before "
               "running it.", ""]
     index += stub_table(delegates)
