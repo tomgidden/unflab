@@ -20,6 +20,8 @@ on:
 
 permissions:
   contents: read
+  # To find the previous keyrings artifact.
+  actions: read
 
 jobs:
   check:
@@ -38,6 +40,22 @@ jobs:
           scripts/check-updates.sh | tee report.txt
           echo "status=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
 
+      # The keyrings attest.sh falls back on when an upstream's own is
+      # unreachable. Kept as an artifact, not in the repo: they aren't
+      # ours. The script decides whether today's set replaces the last.
+      - id: keyrings
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/refresh-keyrings.sh keyrings | tee keyrings.txt
+
+      - if: steps.keyrings.outputs.upload == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: keyrings
+          path: keyrings/
+          retention-days: 90
+          if-no-files-found: error
+
       - name: Summary
         run: |
           {
@@ -45,6 +63,12 @@ jobs:
             echo
             echo '```'
             cat report.txt
+            echo '```'
+            echo
+            echo '### Keyrings'
+            echo
+            echo '```'
+            cat keyrings.txt
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 

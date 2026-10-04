@@ -96,6 +96,7 @@ for f in "$@"; do
     scripts/prereqs.sh|\
     scripts/bump.sh|\
     scripts/check-updates.sh|\
+    scripts/refresh-keyrings.sh|\
     scripts/install-local.sh|\
     docmd.config.base.json|\
     docmd.config.json|\
