@@ -30,6 +30,24 @@
 # are wrong, a fetch failure means the network is. Only the first is a
 # security event.
 
+# unflab_keyring_cache <dir> -- unpack the newest `keyrings` artifact,
+# which check-updates.yml uploads, into <dir> as <host>/<path> for each
+# keyring URL; print when it was made. Returns 1 if there is none to
+# be had: outside CI there is usually no GITHUB_REPOSITORY or token.
+unflab_keyring_cache() {
+  local dir="$1" repo="${GITHUB_REPOSITORY:-}" art
+  [ -n "$repo" ] && command -v gh >/dev/null 2>&1 || return 1
+  art="$(gh api "repos/$repo/actions/artifacts?name=keyrings&per_page=100" \
+           -q '[.artifacts[] | select(.expired | not)] | sort_by(.created_at)
+               | last | "\(.id) \(.created_at)"' 2>/dev/null)" || return 1
+  [ -n "$art" ] && [ "$art" != "null null" ] || return 1
+  mkdir -p "$dir"
+  gh api "repos/$repo/actions/artifacts/${art%% *}/zip" > "$dir/.zip" 2>/dev/null &&
+    unzip -q -o "$dir/.zip" -d "$dir" || return 1
+  rm -f "$dir/.zip"
+  echo "${art#* }"
+}
+
 unflab_attest() {
   local tarball="$1" sha="$2" spec="${3:-}" version="${4:-}"
 
@@ -104,10 +122,20 @@ unflab_attest() {
         _cleanup; return 2
       fi
 
+      # Not from a mirror: a keyring fetched from the same place as the
+      # tarball and its signature would vouch for nothing. The fallback
+      # is the copy check-updates.yml last fetched from this same URL.
       if ! curl -fsSL --connect-timeout 15 --max-time 60 --retry 2 \
              -o "$tmp/keyring" "$rest" 2>/dev/null; then
-        echo "attest: could not fetch keyring $rest" >&2
-        _cleanup; return 2
+        local when
+        if when="$(unflab_keyring_cache "$tmp/cache")" &&
+           [ -s "$tmp/cache/${rest#*://}" ]; then
+          cp "$tmp/cache/${rest#*://}" "$tmp/keyring"
+          echo "attest: $rest unreachable; using the copy fetched $when"
+        else
+          echo "attest: could not fetch keyring $rest, and no cached copy" >&2
+          _cleanup; return 2
+        fi
       fi
 
       # The keyring is the trust anchor: it is fetched from the

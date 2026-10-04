@@ -96,13 +96,16 @@ runs:
     # Attestation is checked on the runner, where gpg and the network
     # are both available. Strict: evidence an upstream publishes must
     # actually be fetchable, or the build fails rather than quietly
-    # downgrading.
+    # downgrading. GH_TOKEN lets attest.sh fall back on the keyrings
+    # artifact when an upstream's keyring is unreachable; the calling
+    # workflow needs actions: read for it.
     - if: inputs.skip != 'true'
       name: Build
       shell: bash
       env:
         UNFLAB_ATTEST_CHECK: "1"
         UNFLAB_ATTEST_STRICT: "1"
+        GH_TOKEN: ${{ github.token }}
       run: scripts/build.sh '${{ inputs.recipe }}'
 
     - if: inputs.skip != 'true'
