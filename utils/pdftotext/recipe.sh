@@ -15,13 +15,13 @@
 # already ships.
 
 UNFLAB_NAME=pdftotext
-UNFLAB_VERSION=26.09.0
+UNFLAB_VERSION=26.10.0
 UNFLAB_VERSION_FLAG="-v pdfdetach=--version pdfseparate=--version pdfunite=--version"
 UNFLAB_HOMEPAGE=https://poppler.freedesktop.org/
 UNFLAB_LICENSE=GPL-2.0-or-later
-UNFLAB_SOURCE=https://poppler.freedesktop.org/poppler-26.09.0.tar.xz
+UNFLAB_SOURCE=https://poppler.freedesktop.org/poppler-26.10.0.tar.xz
 UNFLAB_CHECK=html:https://poppler.freedesktop.org/:poppler
-UNFLAB_SHA256=8059eadb6805340768f138c465b57f8164c92b4a0773c37ef031ea6c0d987b2e
+UNFLAB_SHA256=6792cb7c69205007ad87d2e936cecc5b3a31fac29ab54ffc3175fdb6b2a6ce35
 UNFLAB_ATTEST='none:upstream publishes no signature or checksum alongside the tarball'
 UNFLAB_TOOLCHAIN="c c++ cmake make pkg-config"
 
