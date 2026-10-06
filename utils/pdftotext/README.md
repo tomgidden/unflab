@@ -55,8 +55,9 @@ check that yourself with `brew deps --tree poppler`.
 This package needs none of it. Poppler's Qt, GLib, cairo, crypto and
 image-codec backends are all optional and simply default to on; the
 font backend can be set to `generic`, which drops fontconfig and
-harfbuzz with it. What is left needs FreeType — compiled from source
-and linked statically here — plus zlib and iconv, which macOS provides.
+harfbuzz with it. What is left needs FreeType, and Brotli's decoder
+for PDFs that compress streams with it — both compiled from source and
+linked statically here — plus zlib and iconv, which macOS provides.
 
 `otool -L` on any of the seven binaries shows only `libz`, `libc++` and
 `libSystem`, all from `/usr/lib`.

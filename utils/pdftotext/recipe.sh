@@ -8,8 +8,8 @@
 # Almost none of it is needed. Poppler's Qt, GLib, cairo, crypto and
 # image-codec backends are all optional and merely default to ON;
 # FONT_CONFIGURATION=generic drops fontconfig and (with it) harfbuzz.
-# What remains needs FreeType, which is built here and linked
-# statically, plus zlib and iconv, which macOS provides.
+# What remains needs FreeType and Brotli's decoder, which are built
+# here and linked statically, plus zlib and iconv, which macOS provides.
 #
 # The result is a set of binaries depending on nothing beyond what macOS
 # already ships.
@@ -28,21 +28,30 @@ UNFLAB_TOOLCHAIN="c c++ cmake make pkg-config"
 # The package is named for the tool, but the tarball is poppler's, so
 # the source directory has to be given explicitly rather than inferred
 # from UNFLAB_NAME-UNFLAB_VERSION.
-UNFLAB_SRC_DIR="$BUILD_ROOT/poppler-26.09.0"
+UNFLAB_SRC_DIR="$BUILD_ROOT/poppler-$UNFLAB_VERSION"
 UNFLAB_CLASS=1
 UNFLAB_PACKAGES=pdftotext
 
 # shellcheck source=../../scripts/lib/freetype.sh
 source "$ROOT_DIR/scripts/lib/freetype.sh"
+# shellcheck source=../../scripts/lib/brotli.sh
+source "$ROOT_DIR/scripts/lib/brotli.sh"
 
 unflab_build() {
   unflab_static_freetype
+  unflab_static_brotli
 
   # Poppler finds FreeType through pkg-config before falling back to a
   # library search, and pkg-config reads PKG_CONFIG_PATH rather than
   # CMAKE_PREFIX_PATH. Putting our own prefix first is what makes the
   # statically built FreeType the one that gets used rather than a
   # Homebrew copy on the build machine.
+  # Brotli is found the same way, and both helpers install to one prefix.
+  #
+  # Brotli is not one of the optional backends switched off below: a
+  # Brotli-compressed stream is part of the PDF itself, and without the
+  # decoder pdftotext fails on a conformant file rather than rendering
+  # it less well.
   export PKG_CONFIG_PATH="$UNFLAB_FREETYPE_PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
 
   # FONT_CONFIGURATION=generic is the flag that does the most work here.
