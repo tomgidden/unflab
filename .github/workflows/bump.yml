@@ -57,7 +57,11 @@ jobs:
                 | awk '/UPDATE$/ { print $1, $3 }' > plan.txt
             fi
           else
-            scripts/check-updates.sh | awk '/UPDATE$/ { print $1, $3 }' > plan.txt
+            # check-updates.sh exits 1 if any check failed. That is
+            # check-updates.yml's to report; it shouldn't hold back the
+            # updates the other checks did find.
+            { scripts/check-updates.sh || true; } |
+              awk '/UPDATE$/ { print $1, $3 }' > plan.txt
           fi
 
           echo "count=$(wc -l < plan.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
