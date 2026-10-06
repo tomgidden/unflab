@@ -35,8 +35,12 @@ jobs:
       - id: check
         env:
           GH_TOKEN: ${{ github.token }}
+        # set +e: Actions runs this with bash -e, which would end the
+        # step on a failed check and skip everything after it --
+        # including the keyring refresh an upstream outage most needs.
+        # The last step fails the job instead.
         run: |
-          set -uo pipefail
+          set +e -uo pipefail
           scripts/check-updates.sh | tee report.txt
           echo "status=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
 

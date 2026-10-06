@@ -69,7 +69,12 @@ latest_version() {
         head -1
       ;;
     gnu)
-      "${CURL[@]}" "https://ftp.gnu.org/gnu/$rest/" |
+      # kernel.org rather than ftpmirror.gnu.org, which GNU also runs
+      # and goes down with ftp.gnu.org. A mirror's listing can lag by
+      # hours, which only delays a bump; the bump's own tarball is
+      # still pinned and attested.
+      { "${CURL[@]}" "https://ftp.gnu.org/gnu/$rest/" ||
+        "${CURL[@]}" "https://mirrors.kernel.org/gnu/$rest/"; } |
         grep -oE "$rest-[0-9][0-9.]*\.tar\.(gz|xz)" |
         sed -E "s/^$rest-//; s/\.tar\.(gz|xz)$//" |
         sort -V | tail -1
