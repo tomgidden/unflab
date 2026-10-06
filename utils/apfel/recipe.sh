@@ -18,9 +18,10 @@
 # signature from that team.
 #
 # UNFLAB_SOURCE is the tag archive rather than the release tarball: the
-# release tarball has no LICENSE. For 1.12.0 its completions and its
-# man page (once @VERSION@ is filled in) are byte-identical to the ones
-# in the release tarball, and its SHA-256 is the one Homebrew pins.
+# release tarball has no LICENSE. Its completions and its man page
+# (once @VERSION@ is filled in) have been byte-identical to the release
+# tarball's at every version checked, and its SHA-256 is the one
+# Homebrew pins -- both worth re-checking on a bump.
 #
 # Not shipped: the release tarball's demo/ scripts. `apfel demos <dir>`
 # writes the same scripts out from the binary itself.
@@ -30,11 +31,11 @@
 # no model to answer prompts with.
 
 UNFLAB_NAME=apfel
-UNFLAB_VERSION=1.15.0
+UNFLAB_VERSION=1.16.0
 UNFLAB_HOMEPAGE=https://apfel.franzai.com
 UNFLAB_LICENSE=MIT
-UNFLAB_SOURCE=https://github.com/Arthur-Ficial/apfel/archive/refs/tags/v1.15.0.tar.gz
-UNFLAB_SHA256=9a80edd8e481bc74453f46acb48909bc32ae5697f3ec8b59e3db7cf239c511c7
+UNFLAB_SOURCE=https://github.com/Arthur-Ficial/apfel/archive/refs/tags/v1.16.0.tar.gz
+UNFLAB_SHA256=a1eac4a439ac208e174912b7082f644f9c8ce065ea07b5683a0e89c7ddb8bcb4
 UNFLAB_ATTEST='none:GitHub auto-generated tag archive; upstream publishes prebuilt binaries but no checksum for the source'
 UNFLAB_CHECK=github:Arthur-Ficial/apfel
 UNFLAB_TOOLCHAIN=""

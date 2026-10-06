@@ -65,5 +65,5 @@ in the binary, and `apfel demos <dir>` writes them out.
 
 - Home: https://apfel.franzai.com
 - Source: https://github.com/Arthur-Ficial/apfel
-- Version: 1.12.0
+- Version: 1.16.0
 - Licence: MIT
