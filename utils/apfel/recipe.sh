@@ -18,9 +18,10 @@
 # signature from that team.
 #
 # UNFLAB_SOURCE is the tag archive rather than the release tarball: the
-# release tarball has no LICENSE. For 1.12.0 its completions and its
-# man page (once @VERSION@ is filled in) are byte-identical to the ones
-# in the release tarball, and its SHA-256 is the one Homebrew pins.
+# release tarball has no LICENSE. Its completions and its man page
+# (once @VERSION@ is filled in) have been byte-identical to the release
+# tarball's at every version checked, and its SHA-256 is the one
+# Homebrew pins -- both worth re-checking on a bump.
 #
 # Not shipped: the release tarball's demo/ scripts. `apfel demos <dir>`
 # writes the same scripts out from the binary itself.
