@@ -10,13 +10,13 @@
 # into, which keeps node, npm and n's cache under ~/.local.
 
 UNFLAB_NAME=n
-UNFLAB_VERSION=10.2.0
+UNFLAB_VERSION=11.0.0
 UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://github.com/tj/n
 UNFLAB_LICENSE=MIT
-UNFLAB_SOURCE=https://github.com/tj/n/archive/refs/tags/v10.2.0.tar.gz
+UNFLAB_SOURCE=https://github.com/tj/n/archive/refs/tags/v11.0.0.tar.gz
 UNFLAB_CHECK=github:tj/n
-UNFLAB_SHA256=5914f0d5e89aadaaaeb803baa89a7582747b0c57ad30201b3522cd76f504c7d9
+UNFLAB_SHA256=44e0bfd66aadff042817d1da90adaf5dfd16d269aefb4f0c79b5a4da23bd0abd
 UNFLAB_ATTEST='none:GitHub auto-generated tag archive; upstream publishes no checksum for it'
 UNFLAB_TOOLCHAIN=""
 UNFLAB_CLASS=3
