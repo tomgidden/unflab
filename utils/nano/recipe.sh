@@ -31,18 +31,18 @@
 # that involves on macOS.
 
 UNFLAB_NAME=nano
-UNFLAB_VERSION=9.2
+UNFLAB_VERSION=9.3
 UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://www.nano-editor.org/
 UNFLAB_LICENSE=GPL-3.0-or-later
-UNFLAB_SOURCE=https://www.nano-editor.org/dist/v9/nano-9.2.tar.xz
+UNFLAB_SOURCE=https://www.nano-editor.org/dist/v9/nano-9.3.tar.xz
 # Checked against ftp.gnu.org rather than nano's own dist/ directory,
 # which is split by major version (dist/v9/). A v9 URL would report 9.2
 # as current forever once nano 10 shipped -- reporting "up to date"
 # rather than failing, which is the worst way to be wrong. The GNU
 # mirror is one flat directory covering every release.
 UNFLAB_CHECK=gnu:nano
-UNFLAB_SHA256=05ecb99247b782e8a5b3a25ed4101dd034b0236902f7449bc9795b717642f7e9
+UNFLAB_SHA256=a9affc52c9596ee0682bcdd4ceb3c0b235eb221d83d733dfd9b0dff45897cb0d
 UNFLAB_ATTEST=gnupg:https://ftp.gnu.org/gnu/gnu-keyring.gpg
 UNFLAB_TOOLCHAIN="c make pkg-config"
 UNFLAB_CLASS=1
