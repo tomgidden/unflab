@@ -17,13 +17,13 @@
 # also ships.
 
 UNFLAB_NAME=ant
-UNFLAB_VERSION=1.44.0
+UNFLAB_VERSION=2.1.0
 UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://github.com/anthropics/anthropic-cli
 UNFLAB_LICENSE=MIT
-UNFLAB_SOURCE=https://github.com/anthropics/anthropic-cli/archive/refs/tags/v1.44.0.tar.gz
+UNFLAB_SOURCE=https://github.com/anthropics/anthropic-cli/archive/refs/tags/v2.1.0.tar.gz
 UNFLAB_CHECK=github:anthropics/anthropic-cli
-UNFLAB_SHA256=7f3930262aa396dd97874ca9e907bafde986c4e2426966018cc41884163fed69
+UNFLAB_SHA256=d9b532a1fee7b7469756860cc176dcdce90e12e8eb99a55be052c54c9f93c114
 UNFLAB_ATTEST='none:upstream publishes a checksums.txt, but it covers the prebuilt release binaries only -- not the GitHub tag archive this builds from'
 UNFLAB_TOOLCHAIN="go"
 UNFLAB_CLASS=3
