@@ -8,13 +8,13 @@
 # file, linked against nothing but libSystem.
 
 UNFLAB_NAME=doggo
-UNFLAB_VERSION=1.4.0
+UNFLAB_VERSION=1.4.2
 UNFLAB_VERSION_FLAG=--version
 UNFLAB_HOMEPAGE=https://doggo.mrkaran.dev/
 UNFLAB_LICENSE=GPL-3.0-or-later
-UNFLAB_SOURCE=https://github.com/mr-karan/doggo/archive/refs/tags/v1.4.0.tar.gz
+UNFLAB_SOURCE=https://github.com/mr-karan/doggo/archive/refs/tags/v1.4.2.tar.gz
 UNFLAB_CHECK=github:mr-karan/doggo
-UNFLAB_SHA256=e0d043aa34fb8daa44df07558fd32fe2686eba6644d5f6834edbc8a789d42e1d
+UNFLAB_SHA256=9c5d1d0d800f72e80d35f6731fa3a80435f5a1af08af900a6b77142600e19395
 UNFLAB_ATTEST='none:GitHub auto-generated tag archive; upstream publishes no checksum for it'
 UNFLAB_TOOLCHAIN="go"
 UNFLAB_CLASS=3
